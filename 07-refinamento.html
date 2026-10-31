@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Refinamento: mapas de diferença e Rfree · Cristalografia de proteínas em simulações</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<header class="topo"><div class="in">
+<a class="marca" href="index.html"><i class="ti ti-atom-2" aria-hidden="true" style="font-size:20px"></i>Cristalografia de proteínas em simulações</a>
+<span class="passo">7 de 7</span>
+</div></header>
+<main><div class="parte">Parte 5 · Mapa, modelo e refinamento</div><h1>7. Refinamento: mapas de diferença e R<sub>free</sub></h1><p class="intro">O refinamento ajusta o modelo para que os fatores de estrutura calculados (F<sub>c</sub>) reproduzam os observados (F<sub>o</sub>). Dois mapas orientam esse trabalho: o 2F<sub>o</sub>−F<sub>c</sub>, que mostra a densidade esperada para o modelo, e o F<sub>o</sub>−F<sub>c</sub>, que mostra a diferença entre os dados e o modelo. Densidade positiva (verde) indica algo que falta no modelo; densidade negativa (vermelha) indica algo que sobra ou está mal posicionado.</p><p class="intro">A qualidade do ajuste é acompanhada por R<sub>work</sub> e R<sub>free</sub>. Cerca de 10% das reflexões são separadas desde o início e não participam do refinamento nem dos mapas, de modo que R<sub>free</sub> funciona como um teste independente contra o sobreajuste.</p><section class="sim" aria-label="Simulação"><h2 class="sr-only">Simulação de refinamento cristalográfico: um modelo peptídico com erros sobre mapas 2Fo−Fc e Fo−Fc, com edição manual de átomos, refinamento automático e acompanhamento de R e Rfree.</h2>
+<style>
+.rw{display:flex;align-items:center;gap:8px;}
+.rw label{font-size:14px;color:var(--text-secondary);min-width:120px;}
+.rw span{font-size:14px;font-weight:500;min-width:44px;}
+.seg button[aria-pressed="true"]{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent);}
+.mt{background:var(--surface-1);border-radius:var(--radius);padding:.6rem .9rem;}
+.mt .l{font-size:12px;color:var(--text-secondary);}
+.mt .v{font-size:20px;font-weight:500;}
+</style>
+<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;">
+  <label style="font-size:14px;color:var(--text-secondary);">Modelo inicial
+    <select id="sc" style="margin-left:6px;">
+      <option value="varios">Vários erros</option>
+      <option value="phe">Phe com χ1 errado</option>
+      <option value="lys">Lys mal posicionada</option>
+      <option value="agua">Águas faltando</option>
+      <option value="extra">Águas falsas (sobreajuste)</option>
+      <option value="ok">Modelo correto</option>
+    </select>
+  </label>
+  <button id="rs"><i class="ti ti-refresh" aria-hidden="true" style="margin-right:6px;"></i>Reiniciar</button>
+  <button id="rf"><i class="ti ti-player-play" aria-hidden="true" style="margin-right:6px;"></i>Refinar 10 ciclos</button>
+  <span class="seg" style="display:flex;gap:4px;flex-wrap:wrap;">
+    <button data-m="move" aria-pressed="true"><i class="ti ti-arrows-move" aria-hidden="true" style="margin-right:4px;"></i>Mover</button>
+    <button data-m="add" aria-pressed="false"><i class="ti ti-droplet" aria-hidden="true" style="margin-right:4px;"></i>Adicionar água</button>
+    <button data-m="del" aria-pressed="false"><i class="ti ti-trash" aria-hidden="true" style="margin-right:4px;"></i>Remover</button>
+  </span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:8px 24px;margin-bottom:12px;">
+  <div class="rw"><label>Resolução</label><input type="range" id="dm" min="1.2" max="3" step="0.1" value="1.8" style="flex:1;"><span id="dmo">1.8 Å</span></div>
+  <div class="rw"><label>Ruído nos dados</label><input type="range" id="nz" min="0" max="20" step="1" value="8" style="flex:1;"><span id="nzo">8%</span></div>
+  <div class="rw"><label>Contorno 2Fo−Fc</label><input type="range" id="l1" min="0.6" max="2.5" step="0.1" value="1" style="flex:1;"><span id="l1o">1.0σ</span></div>
+  <div class="rw"><label>Contorno Fo−Fc</label><input type="range" id="l2" min="2" max="5" step="0.1" value="3" style="flex:1;"><span id="l2o">±3.0σ</span></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;">
+  <div style="flex:1 1 340px;min-width:0;">
+    <canvas id="mp" width="560" height="560" role="img" aria-label="Mapas 2Fo−Fc e Fo−Fc sobre o modelo peptídico editável" style="width:100%;aspect-ratio:1;display:block;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);touch-action:none;cursor:crosshair;"></canvas>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:12px;color:var(--text-secondary);align-items:center;">
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:2px;background:#2a78d6;"></span>2Fo−Fc</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:2px;background:#1baf7a;"></span>Fo−Fc + (falta átomo)</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:2px;background:#e34948;"></span>Fo−Fc − (sobra átomo)</span>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="gh">Mostrar estrutura verdadeira</label>
+    </div>
+  </div>
+  <div style="flex:1 1 220px;min-width:0;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="mt"><div class="l">R<sub>work</sub></div><div class="v" id="v1">–</div></div>
+      <div class="mt"><div class="l">R<sub>free</sub></div><div class="v" id="v2">–</div></div>
+      <div class="mt"><div class="l">R<sub>free</sub> − R<sub>work</sub></div><div class="v" id="v3">–</div></div>
+      <div class="mt"><div class="l">Átomos no modelo</div><div class="v" id="v4">–</div></div>
+    </div>
+    <div style="display:flex;gap:14px;margin:12px 0 4px;font-size:12px;color:var(--text-secondary);">
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:2px;background:#2a78d6;"></span>R<sub>work</sub></span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:0;border-top:2px dashed #eb6834;"></span>R<sub>free</sub></span>
+    </div>
+    <canvas id="rh" width="440" height="220" role="img" aria-label="Histórico de R e Rfree ao longo das etapas" style="width:100%;display:block;"></canvas>
+    <p id="msg" style="font-size:13px;color:var(--text-secondary);margin:8px 0 0;line-height:1.5;"></p>
+  </div>
+</div>
+<script>
+(function(){
+const A=20,N=100,TP=2*Math.PI,HX=20;
+const T=[[3.0,10.0,'N'],[4.2,10.8,'C'],[5.5,10.0,'C'],[5.5,8.8,'O'],[4.2,12.3,'C'],[5.4,13.0,'O'],[6.7,10.6,'N'],[8.0,9.9,'C'],[9.3,10.7,'C'],[9.3,11.9,'O'],[8.0,8.4,'C'],[8.0,7.0,'C'],[9.2,6.3,'C'],[6.8,6.3,'C'],[9.2,4.9,'C'],[6.8,4.9,'C'],[8.0,4.2,'C'],[10.5,10.0,'N'],[11.8,10.7,'C'],[13.1,9.9,'C'],[13.1,8.7,'O'],[11.8,12.2,'C'],[13.0,13.0,'C'],[13.0,14.5,'C'],[14.2,15.3,'C'],[14.2,16.8,'N'],[14.3,10.5,'N'],[15.6,9.8,'C'],[16.9,10.6,'C'],[16.9,11.8,'O'],[15.6,8.3,'C'],[16.9,7.4,'S'],[5.0,15.6,'W'],[12.2,5.0,'W'],[16.2,18.4,'W'],[2.6,6.6,'W'],[18.6,13.6,'W']].map((a,id)=>({id,x:a[0],y:a[1],e:a[2],w:a[2]==='W'}));
+const ZZ={C:6,N:7,O:8,S:16,W:8};
+const bonds=[];for(let i=0;i<T.length;i++)for(let j=i+1;j<T.length;j++)if(!T[i].w&&!T[j].w&&Math.hypot(T[i].x-T[j].x,T[i].y-T[j].y)<1.9)bonds.push([i,j]);
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const COL={C:dark?'#c3c2b7':'#5f5e5a',N:'#6250d6',O:'#e34948',W:'#e34948',S:'#eda100'};
+const BLU=dark?'#3987e5':'#2a78d6',GRN=dark?'#199e70':'#1baf7a',RED=dark?'#e66767':'#e34948',ORG=dark?'#d95926':'#eb6834',GRD=dark?'#2c2c2a':'#e1e0d9';
+function fA(a,s2){return ZZ[a.e]*(a.w?0.8:1)*Math.exp(-((a.w?30:15)+8)*s2/4);}
+const ct=[],st=[];for(let k=-HX;k<=HX;k++){const c=new Float64Array(N),s=new Float64Array(N);for(let j=0;j<N;j++){c[j]=Math.cos(TP*k*j/N);s[j]=Math.sin(TP*k*j/N);}ct.push(c);st.push(s);}
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(TP*v);}
+const RN={},FR={};for(let h=-HX;h<=HX;h++)for(let k=-HX;k<=HX;k++){const key=h+','+k;if(RN[key]!==undefined)continue;const g=gauss(),f=Math.random()<0.1;RN[key]=g;FR[key]=f;RN[(-h)+','+(-k)]=g;FR[(-h)+','+(-k)]=f;}
+let refl=[];
+function buildRefl(){const dmin=+E.dm.value,nz=+E.nz.value/100,H=Math.floor(A/dmin);refl=[];
+ for(let h=-H;h<=H;h++)for(let k=-H;k<=H;k++){if(!h&&!k)continue;const s2=(h*h+k*k)/(A*A);if(s2>1/(dmin*dmin)+1e-9)continue;
+  let re=0,im=0;for(const a of T){const f=fA(a,s2),p=TP*(h*a.x+k*a.y)/A;re+=f*Math.cos(p);im+=f*Math.sin(p);}
+  const key=h+','+k;refl.push({h,k,s2,Fo:Math.hypot(re,im)*Math.max(0.05,1+nz*RN[key]),free:FR[key]});}}
+function calcFc(m){const re=new Float64Array(refl.length),im=new Float64Array(refl.length);refl.forEach((R,n)=>{for(const a of m){const f=fA(a,R.s2),p=TP*(R.h*a.x+R.k*a.y)/A;re[n]+=f*Math.cos(p);im[n]+=f*Math.sin(p);}});return{re,im};}
+function scaleK(re,im){let a=0,b=0;refl.forEach((R,n)=>{if(R.free)return;const fc=Math.hypot(re[n],im[n]);a+=R.Fo*fc;b+=fc*fc;});return b?a/b:1;}
+function rvals(re,im,k){let nw=0,dw=0,nf=0,df=0;refl.forEach((R,n)=>{const d=Math.abs(R.Fo-k*Math.hypot(re[n],im[n]));if(R.free){nf+=d;df+=R.Fo;}else{nw+=d;dw+=R.Fo;}});return{R:nw/dw,Rf:nf/df};}
+function density(coef){const rho=new Float64Array(N*N),byH={};for(const t of coef)(byH[t.h]||(byH[t.h]=[])).push(t);
+ for(const hs in byH){const h=+hs,Rr=new Float64Array(N),Ri=new Float64Array(N);
+  for(const t of byH[hs]){const c=ct[t.k+HX],s=st[t.k+HX],cp=Math.cos(t.phi),sp=Math.sin(t.phi);for(let j=0;j<N;j++){Rr[j]+=t.amp*(c[j]*cp+s[j]*sp);Ri[j]+=t.amp*(s[j]*cp-c[j]*sp);}}
+  const ch=ct[h+HX],sh=st[h+HX];for(let i=0;i<N;i++){const a=ch[i],b=sh[i],o=i*N;for(let j=0;j<N;j++)rho[o+j]+=a*Rr[j]-b*Ri[j];}}
+ let m=0;for(const v of rho)m+=v;m/=rho.length;let s=0;for(const v of rho)s+=(v-m)**2;s=Math.sqrt(s/rho.length)||1;for(let i=0;i<rho.length;i++)rho[i]=(rho[i]-m)/s;return rho;}
+function contour(g,rho,L,color,sgn,W){const sc=W/N;g.strokeStyle=color;g.lineWidth=1.3;g.beginPath();const V=(i,j)=>sgn*rho[((i%N+N)%N)*N+((j%N+N)%N)];
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const v=[V(i,j),V(i+1,j),V(i+1,j+1),V(i,j+1)],P=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]],pts=[];
+  for(let e=0;e<4;e++){const a=v[e],b=v[(e+1)%4];if((a<L)!==(b<L)){const t=(L-a)/(b-a),pa=P[e],pb=P[(e+1)%4];pts.push([(pa[0]+t*(pb[0]-pa[0]))*sc,(pa[1]+t*(pb[1]-pa[1]))*sc]);}}
+  for(let q=0;q+1<pts.length;q+=2){g.moveTo(pts[q][0],pts[q][1]);g.lineTo(pts[q+1][0],pts[q+1][1]);}}g.stroke();}
+let model=[],hist=[],mode='move',nextId=200,maps=null,busy=false;
+function scen(name){let m=T.map(a=>({...a}));
+ const rot=(ids,cid,deg)=>{const c=m.find(a=>a.id===cid),t=deg*Math.PI/180;for(const a of m)if(ids.includes(a.id)){const dx=a.x-c.x,dy=a.y-c.y;a.x=c.x+dx*Math.cos(t)-dy*Math.sin(t);a.y=c.y+dx*Math.sin(t)+dy*Math.cos(t);}};
+ if(name==='phe'||name==='varios')rot([11,12,13,14,15,16],10,55);
+ if(name==='lys'||name==='varios')rot([22,23,24,25],21,-55);
+ if(name==='agua'||name==='varios')m=m.filter(a=>![32,33,34].includes(a.id));
+ if(name==='extra'){let c=0,t=0;while(c<8&&t<2000){t++;const x=Math.random()*A,y=Math.random()*A;const ok=T.every(a=>{let dx=Math.abs(a.x-x),dy=Math.abs(a.y-y);dx=Math.min(dx,A-dx);dy=Math.min(dy,A-dy);return Math.hypot(dx,dy)>2.8;});if(ok){m.push({id:nextId++,x,y,e:'W',w:true});c++;}}}
+ return m;}
+function compute(push){const {re,im}=calcFc(model),k=scaleK(re,im),r=rvals(re,im,k);
+ const c2=[],cd=[];refl.forEach((R,n)=>{const fc=k*Math.hypot(re[n],im[n]),ph=Math.atan2(im[n],re[n]);if(R.free)return;c2.push({h:R.h,k:R.k,amp:2*R.Fo-fc,phi:ph});cd.push({h:R.h,k:R.k,amp:R.Fo-fc,phi:ph});});
+ maps={m2:density(c2),md:density(cd)};
+ if(push){hist.push(r);if(hist.length>80)hist.shift();}
+ E.v1.textContent=(r.R*100).toFixed(1)+'%';E.v2.textContent=(r.Rf*100).toFixed(1)+'%';E.v3.textContent=((r.Rf-r.R)*100).toFixed(1)+'%';E.v4.textContent=model.length;
+ const gap=r.Rf-r.R;E.msg.textContent=gap>0.07?'Distância grande entre Rfree e Rwork: sinal de sobreajuste ou erros no modelo.':(r.R<0.12?'Modelo bem ajustado aos dados.':'Procure densidade verde (falta algo) e vermelha (algo sobrando ou mal posicionado).');
+ draw();drawHist();}
+function draw(){const cv=E.mp,g=cv.getContext('2d'),W=cv.width,s=W/A;g.clearRect(0,0,W,W);
+ if(maps){contour(g,maps.m2,+E.l1.value,BLU,1,W);contour(g,maps.md,+E.l2.value,GRN,1,W);contour(g,maps.md,+E.l2.value,RED,-1,W);}
+ if(E.gh.checked){g.setLineDash([3,3]);g.strokeStyle='#888780';g.lineWidth=1;for(const [i,j] of bonds){g.beginPath();g.moveTo(T[i].x*s,T[i].y*s);g.lineTo(T[j].x*s,T[j].y*s);g.stroke();}for(const a of T)if(a.w){g.beginPath();g.arc(a.x*s,a.y*s,6,0,TP);g.stroke();}g.setLineDash([]);}
+ const byId={};for(const a of model)byId[a.id]=a;g.lineWidth=2.5;
+ for(const [i,j] of bonds){const a=byId[i],b=byId[j];if(!a||!b)continue;const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;g.strokeStyle=COL[a.e];g.beginPath();g.moveTo(a.x*s,a.y*s);g.lineTo(mx*s,my*s);g.stroke();g.strokeStyle=COL[b.e];g.beginPath();g.moveTo(mx*s,my*s);g.lineTo(b.x*s,b.y*s);g.stroke();}
+ for(const a of model){g.fillStyle=COL[a.e];g.beginPath();g.arc(a.x*s,a.y*s,a.w?5:3.5,0,TP);g.fill();}
+ g.fillStyle='#898781';g.font='13px sans-serif';g.fillText('Ser1  Phe2  Lys3  Cys4 · célula 20 × 20 Å',10,W-10);}
+function drawHist(){const cv=E.rh,g=cv.getContext('2d'),W=cv.width,H=cv.height,pl=36,pb=20,pt=8;g.clearRect(0,0,W,H);
+ const ymax=Math.max(0.3,Math.ceil(Math.max(...hist.map(h=>h.Rf),...hist.map(h=>h.R))*10)/10);
+ g.font='11px sans-serif';g.fillStyle='#898781';g.strokeStyle=GRD;g.lineWidth=1;
+ for(let v=0;v<=ymax+1e-9;v+=0.1){const y=pt+(H-pt-pb)*(1-v/ymax);g.beginPath();g.moveTo(pl,y);g.lineTo(W,y);g.stroke();g.fillText(Math.round(v*100)+'%',2,y+4);}
+ g.fillText('etapas',W-40,H-4);if(hist.length<1)return;
+ const X=i=>pl+(W-pl-8)*(hist.length===1?0.5:i/(hist.length-1)),Y=v=>pt+(H-pt-pb)*(1-v/ymax);
+ const ln=(key,col,dash)=>{g.strokeStyle=col;g.lineWidth=2;g.setLineDash(dash);g.beginPath();hist.forEach((h,i)=>{i?g.lineTo(X(i),Y(h[key])):g.moveTo(X(i),Y(h[key]));});g.stroke();g.setLineDash([]);};
+ ln('R',BLU,[]);ln('Rf',ORG,[5,4]);}
+function reset(){model=scen(E.sc.value);hist=[];compute(true);}
+function refineCycle(step){const {re,im}=calcFc(model),k=scaleK(re,im);const n=refl.length;
+ const tgt=(rr,ii)=>{let t=0;for(let q=0;q<n;q++){if(refl[q].free)continue;const d=refl[q].Fo-k*Math.hypot(rr[q],ii[q]);t+=d*d;}return t;};
+ let cur=tgt(re,im);const dirs=[[1,0],[-1,0],[0,1],[0,-1],[.7,.7],[-.7,.7],[.7,-.7],[-.7,-.7]];
+ for(const a of model){const oR=new Float64Array(n),oI=new Float64Array(n);for(let q=0;q<n;q++){const R=refl[q],f=fA(a,R.s2),p=TP*(R.h*a.x+R.k*a.y)/A;oR[q]=f*Math.cos(p);oI[q]=f*Math.sin(p);}
+  let best=null,bestT=cur,bR=null,bI=null;
+  for(const d of dirs){const nx=a.x+d[0]*step,ny=a.y+d[1]*step,tR=new Float64Array(n),tI=new Float64Array(n);for(let q=0;q<n;q++){const R=refl[q],f=fA(a,R.s2),p=TP*(R.h*nx+R.k*ny)/A;tR[q]=re[q]-oR[q]+f*Math.cos(p);tI[q]=im[q]-oI[q]+f*Math.sin(p);}
+   const t=tgt(tR,tI);if(t<bestT){bestT=t;best=[nx,ny];bR=tR;bI=tI;}}
+  if(best){a.x=(best[0]+A)%A;a.y=(best[1]+A)%A;re.set(bR);im.set(bI);cur=bestT;}}}
+function refine(){if(busy)return;busy=true;let c=0;const go=()=>{refineCycle(0.25*Math.pow(0.82,c));compute(true);c++;if(c<10)setTimeout(go,30);else busy=false;};go();}
+const E={};['sc','rs','rf','dm','dmo','nz','nzo','l1','l1o','l2','l2o','mp','gh','v1','v2','v3','v4','rh','msg'].forEach(id=>E[id]=document.getElementById(id));
+function lab(){E.dmo.textContent=(+E.dm.value).toFixed(1)+' Å';E.nzo.textContent=E.nz.value+'%';E.l1o.textContent=(+E.l1.value).toFixed(1)+'σ';E.l2o.textContent='±'+(+E.l2.value).toFixed(1)+'σ';}
+E.sc.onchange=reset;E.rs.onclick=reset;E.rf.onclick=refine;
+E.dm.oninput=()=>{lab();buildRefl();compute(true);};E.nz.oninput=()=>{lab();buildRefl();compute(true);};
+E.l1.oninput=()=>{lab();draw();};E.l2.oninput=()=>{lab();draw();};E.gh.onchange=draw;
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;document.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b?'true':'false'));});
+let drag=null;const toA=e=>{const r=E.mp.getBoundingClientRect();return[(e.clientX-r.left)/r.width*A,(e.clientY-r.top)/r.height*A];};
+const nearest=(x,y)=>{let b=null,bd=0.7;for(const a of model){const d=Math.hypot(a.x-x,a.y-y);if(d<bd){bd=d;b=a;}}return b;};
+E.mp.onpointerdown=e=>{if(busy)return;const [x,y]=toA(e);
+ if(mode==='add'){model.push({id:nextId++,x,y,e:'W',w:true});compute(true);return;}
+ const a=nearest(x,y);if(!a)return;if(mode==='del'){model=model.filter(q=>q!==a);compute(true);return;}
+ drag=a;E.mp.setPointerCapture(e.pointerId);};
+E.mp.onpointermove=e=>{if(!drag)return;const [x,y]=toA(e);drag.x=Math.min(Math.max(x,0),A);drag.y=Math.min(Math.max(y,0),A);draw();};
+E.mp.onpointerup=()=>{if(drag){drag=null;compute(true);}};
+lab();buildRefl();reset();
+})();
+</script>
+</section><div class="caixa"><h3><i class="ti ti-flask" aria-hidden="true" style="margin-right:6px"></i>Experimente</h3><ul><li>Arrastando o anel da Phe para a densidade verde, o vermelho tende a desaparecer e o R cai; o mesmo vale para a Lys e para as águas ausentes (modo “Adicionar água”).</li><li>O refinamento automático corrige erros pequenos, mas não tira a Phe de um χ1 errado, porque o mínimo local a prende; isso ilustra por que a correção manual continua necessária.</li><li>No cenário de águas falsas, o refinamento tende a encaixá-las no ruído: R<sub>work</sub> cai mais que R<sub>free</sub>, e a diferença entre os dois aumenta. Com mais ruído nos dados, o efeito fica mais evidente.</li><li>Em 2,5–3 Å, os mesmos erros ficam bem mais difíceis de identificar nos mapas de diferença.</li></ul></div><div class="caixa"><h3><i class="ti ti-info-circle" aria-hidden="true" style="margin-right:6px"></i>Ressalvas do modelo</h3><ul><li>O refinamento desta simulação não usa restrições de geometria (comprimentos e ângulos de ligação); em programas como phenix.refine e REFMAC, essas restrições são justamente o que limita o sobreajuste.</li><li>Os mapas usam coeficientes simples (2F<sub>o</sub>−kF<sub>c</sub> e F<sub>o</sub>−kF<sub>c</sub>), sem os pesos de máxima verossimilhança (m, D) usados na prática.</li></ul></div><nav class="nav"><a href="06-mapa-vs-resolucao.html"><i class="ti ti-arrow-left" aria-hidden="true"></i>6. Aparência do mapa em função da resolução</a><a href="index.html">Voltar ao início<i class="ti ti-arrow-right" aria-hidden="true"></i></a></nav></main><footer>Simulações didáticas de cristalografia de proteínas. Modelos simplificados em 1D e 2D, feitos para construir intuição; não substituem os programas de processamento, faseamento e refinamento.</footer>
+</body>
+</html>

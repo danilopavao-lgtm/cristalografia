@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estatísticas de processamento por camada de resolução · Cristalografia de proteínas em simulações</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<header class="topo"><div class="in">
+<a class="marca" href="index.html"><i class="ti ti-atom-2" aria-hidden="true" style="font-size:20px"></i>Cristalografia de proteínas em simulações</a>
+<span class="passo">4 de 7</span>
+</div></header>
+<main><div class="parte">Parte 3 · Coleta e processamento</div><h1>4. Estatísticas de processamento por camada de resolução</h1><p class="intro">Depois da coleta, cada reflexão costuma ter sido medida várias vezes. O processamento integra, escala e mescla essas observações, e as estatísticas por camada de resolução indicam até onde os dados ainda carregam informação útil.</p><p class="intro">Esta simulação gera um conjunto de dados sintético para uma célula de 60 × 70 × 80 Å em P2<sub>1</sub>2<sub>1</sub>2<sub>1</sub>. As intensidades caem com a resolução segundo o fator B de Wilson, e cada medida inclui ruído de contagem de fótons, fundo e um pequeno erro sistemático. O resultado é apresentado por camada e no formato usual da Tabela 1 dos artigos, com a camada externa entre parênteses.</p><section class="sim" aria-label="Simulação"><h2 class="sr-only">Simulação de estatísticas de processamento de dados de difração por camada de resolução, incluindo completeza, multiplicidade, I/σ, Rmerge, Rpim e CC1/2, com escolha do corte de resolução e resumo no formato da Tabela 1.</h2>
+<style>
+.rw{display:flex;align-items:center;gap:8px;}
+.rw label{font-size:14px;color:var(--text-secondary);min-width:150px;}
+.rw span{font-size:14px;font-weight:500;min-width:48px;}
+.tb{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px;font-variant-numeric:tabular-nums;min-width:520px;}
+.tb th{font-weight:500;color:var(--text-secondary);text-align:right;padding:5px 4px;border-bottom:0.5px solid var(--border-strong);}
+.tb td{text-align:right;padding:4px;border-bottom:0.5px solid var(--border);}
+.tb th:first-child,.tb td:first-child{text-align:left;width:24%;}
+.tb tr.tot td{font-weight:500;border-top:0.5px solid var(--border-strong);}
+.wn{color:var(--text-warning);}
+.mt{background:var(--surface-1);border-radius:var(--radius);padding:.6rem .9rem;}
+.mt .l{font-size:12px;color:var(--text-secondary);}
+.mt .v{font-size:20px;font-weight:500;}
+</style>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:8px 24px;margin-bottom:10px;">
+  <div class="rw"><label>Fator B de Wilson (Å²)</label><input type="range" id="bw" min="5" max="80" step="1" value="30" style="flex:1;"><span id="bwo">30</span></div>
+  <div class="rw"><label>Exposição por imagem</label><input type="range" id="ex" min="1" max="20" step="1" value="5" style="flex:1;"><span id="exo">5</span></div>
+  <div class="rw"><label>Multiplicidade alvo</label><input type="range" id="mu" min="1" max="12" step="1" value="6" style="flex:1;"><span id="muo">6</span></div>
+  <div class="rw"><label>Borda do detector</label><input type="range" id="ed" min="1.2" max="3.5" step="0.05" value="1.6" style="flex:1;"><span id="edo">1.60 Å</span></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;">
+  <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-secondary);"><input type="checkbox" id="dmg">Dano de radiação</label>
+  <button id="nw"><i class="ti ti-refresh" aria-hidden="true" style="margin-right:6px;"></i>Nova coleta</button>
+</div>
+<div style="border-top:0.5px solid var(--border);padding-top:12px;margin-bottom:12px;">
+  <div class="rw"><label style="color:var(--text-primary);font-weight:500;">Corte de resolução</label><input type="range" id="ct" min="1.2" max="3.5" step="0.01" value="2.0" style="flex:1;"><span id="cto">2.00 Å</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+    <button id="bcc">Cortar em CC<sub>1/2</sub> = 0,3</button>
+    <button id="bis">Cortar em ⟨I/σ⟩ = 2</button>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px;">
+  <div class="mt"><div class="l">Onde CC<sub>1/2</sub> = 0,3</div><div class="v" id="rcc">–</div></div>
+  <div class="mt"><div class="l">Onde ⟨I/σ⟩ = 2</div><div class="v" id="ris">–</div></div>
+  <div class="mt"><div class="l">Reflexões únicas no corte</div><div class="v" id="nun">–</div></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+  <div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">CC<sub>1/2</sub> por camada (tracejado: 0,3)</div><div style="position:relative;height:200px;"><canvas id="c1" role="img" aria-label="CC1/2 em função da resolução com linha de corte">CC1/2 por camada.</canvas></div></div>
+  <div><div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">⟨I/σ(I)⟩ por camada, escala log (tracejado: 2)</div><div style="position:relative;height:200px;"><canvas id="c2" role="img" aria-label="I sobre sigma em função da resolução com linha de corte">I/σ por camada.</canvas></div></div>
+</div>
+<div style="font-size:13px;color:var(--text-secondary);margin:16px 0 4px;">Estatísticas por camada até o corte (valores em amarelo abaixo dos critérios)</div>
+<div style="overflow-x:auto;"><table class="tb" id="tb"></table></div>
+<div style="font-size:13px;color:var(--text-secondary);margin:16px 0 6px;">Como entraria na Tabela 1 do artigo: geral (camada externa)</div>
+<div id="t1" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 24px;font-size:14px;font-variant-numeric:tabular-nums;"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+const V=60*70*80,G=4,DLOW=40,DHI=1.2,NS=320;
+let seed=7;function rngF(s){return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let R;function gs(){let u=0,v=0;while(!u)u=R();while(!v)v=R();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+const Ntot=d=>4.18879*V/(2*G*d*d*d);
+const P={};
+function rd(){P.B=+el.bw.value;P.E=+el.ex.value;P.m=+el.mu.value;P.edge=+el.ed.value;P.cut=+el.ct.value;P.dmg=el.dmg.checked;}
+function comp(d){return d>=P.edge?0.995:Math.max(0,1-(P.edge-d)/(P.edge*0.25));}
+function shell(dlo,dhi,si){R=rngF(seed*1000+si);const a=1/dlo**3,b=1/dhi**3,bg=60*P.E;
+ let meas=0,obsN=0,sumI=0,sumAbs=0,sumPim=0,isg=0,h1=[],h2=[];
+ for(let s=0;s<NS;s++){const d=Math.pow(a+R()*(b-a),-1/3);const c=comp(d);if(R()>c)continue;meas++;
+  const I0=300*P.E*Math.exp(-P.B/(2*d*d))*(-Math.log(1-R()+1e-12));
+  let mi=Math.max(1,Math.round(P.m*(0.75+0.5*R())*(d<P.edge?0.6:1)));
+  const obs=[];let s2=0;for(let j=0;j<mi;j++){const dB=P.dmg?0.35*P.E*j:0,It=I0*Math.exp(-dB/(2*d*d));const o=It+gs()*Math.sqrt(Math.max(It,0)+2*bg)+gs()*0.03*It;obs.push(o);s2+=Math.max(o,0)+2*bg+(0.03*o)**2;}
+  const mI=obs.reduce((x,y)=>x+y,0)/mi,sm=Math.sqrt(s2)/mi;isg+=mI/sm;obsN+=mi;
+  for(const o of obs){sumI+=Math.abs(o);if(mi>1){sumAbs+=Math.abs(o-mI);sumPim+=Math.sqrt(1/(mi-1))*Math.abs(o-mI);}}
+  if(mi>1){const sh=obs.map(o=>[R(),o]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]),k=Math.floor(mi/2);h1.push(sh.slice(0,k).reduce((x,y)=>x+y,0)/k);h2.push(sh.slice(k).reduce((x,y)=>x+y,0)/(mi-k));}}
+ const Nsh=Ntot(dhi)-Ntot(dlo);
+ return{dlo,dhi,N:Nsh,compl:meas/NS,mult:meas?obsN/meas:0,isig:meas?isg/meas:0,rm:sumI?sumAbs/sumI:0,rp:sumI?sumPim/sumI:0,cc:pear(h1,h2),h1,h2,meas,obsN,sumI,sumAbs,sumPim,isgS:isg};}
+function pear(x,y,w){const n=x.length;if(n<3)return NaN;let sw=0,mx=0,my=0;for(let i=0;i<n;i++){const wi=w?w[i]:1;sw+=wi;mx+=wi*x[i];my+=wi*y[i];}mx/=sw;my/=sw;let sxy=0,sxx=0,syy=0;for(let i=0;i<n;i++){const wi=w?w[i]:1,dx=x[i]-mx,dy=y[i]-my;sxy+=wi*dx*dy;sxx+=wi*dx*dx;syy+=wi*dy*dy;}return sxy/Math.sqrt(sxx*syy);}
+function shells(dlo,dhi,n,base){const a=1/dlo**3,b=1/dhi**3,out=[];for(let i=0;i<n;i++){const d1=Math.pow(a+(b-a)*i/n,-1/3),d2=Math.pow(a+(b-a)*(i+1)/n,-1/3);out.push(shell(d1,d2,base+i));}return out;}
+function cross(S,key,thr){for(let i=1;i<S.length;i++){const p=S[i-1][key],q=S[i][key];if(p>=thr&&q<thr){const dp=(S[i-1].dlo+S[i-1].dhi)/2,dq=(S[i].dlo+S[i].dhi)/2;return dp+(dq-dp)*(p-thr)/(p-q);}}return S[S.length-1][key]>=thr?DHI:NaN;}
+const dk=matchMedia('(prefers-color-scheme: dark)').matches;
+const BL=dk?'#3987e5':'#2a78d6',GR=dk?'#2c2c2a':'#e1e0d9',TK='#898781',CU=dk?'#d95926':'#eb6834';
+let full=[];
+const cutPlug={id:'cut',afterDraw(c){const x=c.scales.x,ar=c.chartArea;const mids=full.map(s=>(s.dlo+s.dhi)/2);let idx=mids.length-1;for(let i=0;i<mids.length;i++){if(mids[i]<=P.cut){idx=i===0?0:i-1+(mids[i-1]-P.cut)/(mids[i-1]-mids[i]);break;}}
+ const px=x.getPixelForValue(0)+(x.getPixelForValue(1)-x.getPixelForValue(0))*idx;const g=c.ctx;g.save();g.strokeStyle=CU;g.lineWidth=2;g.beginPath();g.moveTo(px,ar.top);g.lineTo(px,ar.bottom);g.stroke();g.fillStyle=CU;g.font='11px sans-serif';g.fillText('corte',Math.min(px+4,ar.right-30),ar.top+11);g.restore();}};
+function mk(id,log,ymin,ymax){return new Chart(document.getElementById(id),{type:'line',data:{labels:[],datasets:[{data:[],borderColor:BL,borderWidth:2,pointRadius:2.5,pointBackgroundColor:BL},{data:[],borderColor:TK,borderWidth:1.5,borderDash:[5,4],pointRadius:0}]},plugins:[cutPlug],
+ options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i[0].label+' Å'}}},scales:{x:{ticks:{color:TK,maxRotation:0,autoSkip:true,maxTicksLimit:7,callback:function(v){return this.getLabelForValue(v)+' Å';}},grid:{display:false}},y:{type:log?'logarithmic':'linear',min:ymin,max:ymax,ticks:{color:TK,maxTicksLimit:6},grid:{color:GR}}}}});}
+let c1,c2;
+const f=(x,n)=>isNaN(x)?'–':x.toFixed(n);
+function upd(){rd();el.bwo.textContent=P.B;el.exo.textContent=P.E;el.muo.textContent=P.m;el.edo.textContent=P.edge.toFixed(2)+' Å';el.cto.textContent=P.cut.toFixed(2)+' Å';
+ full=shells(DLOW,DHI,20,0);
+ const lab=full.map(s=>((s.dlo+s.dhi)/2).toFixed(2));
+ c1.data.labels=lab;c1.data.datasets[0].data=full.map(s=>s.cc);c1.data.datasets[1].data=full.map(()=>0.3);c1.update();
+ c2.data.labels=lab;c2.data.datasets[0].data=full.map(s=>Math.max(s.isig,0.05));c2.data.datasets[1].data=full.map(()=>2);c2.update();
+ const xc=cross(full,'cc',0.3),xi=cross(full,'isig',2);el.rcc.textContent=isNaN(xc)?'> 40 Å':(xc<=DHI+1e-6?'≤ 1,20 Å':xc.toFixed(2)+' Å');el.ris.textContent=isNaN(xi)?'> 40 Å':(xi<=DHI+1e-6?'≤ 1,20 Å':xi.toFixed(2)+' Å');
+ el.bcc.dataset.v=isNaN(xc)?'':Math.max(xc,DHI);el.bis.dataset.v=isNaN(xi)?'':Math.max(xi,DHI);
+ const T=shells(DLOW,P.cut,10,100);
+ let rows='<tr><th>Camada (Å)</th><th>Refl.</th><th>Compl. %</th><th>Mult.</th><th>⟨I/σ⟩</th><th>R<sub>merge</sub></th><th>CC<sub>1/2</sub></th></tr>';
+ let NU=0,NM=0,OB=0,SI=0,SA=0,SP=0,IS=0,H1=[],H2=[],W=[];
+ for(const s of T){const nm=s.N*s.compl;NU+=s.N;NM+=nm;const sc=nm/Math.max(s.meas,1);OB+=s.obsN*sc;SI+=s.sumI*sc;SA+=s.sumAbs*sc;SP+=s.sumPim*sc;IS+=s.isgS*sc;s.h1.forEach((v,i)=>{H1.push(v);H2.push(s.h2[i]);W.push(sc);});
+  rows+='<tr><td>'+s.dlo.toFixed(2)+'–'+s.dhi.toFixed(2)+'</td><td>'+Math.round(nm).toLocaleString('pt-BR')+'</td><td>'+f(s.compl*100,1)+'</td><td>'+f(s.mult,1)+'</td><td class="'+(s.isig<2?'wn':'')+'">'+f(s.isig,1)+'</td><td>'+f(s.rm,3)+'</td><td class="'+(s.cc<0.3?'wn':'')+'">'+f(s.cc,3)+'</td></tr>';}
+ const ov={compl:NM/NU,mult:OB/NM,isig:IS/NM,rm:SA/SI,rp:SP/SI,cc:pear(H1,H2,W)};
+ rows+='<tr class="tot"><td>Total</td><td>'+Math.round(NM).toLocaleString('pt-BR')+'</td><td>'+f(ov.compl*100,1)+'</td><td>'+f(ov.mult,1)+'</td><td>'+f(ov.isig,1)+'</td><td>'+f(ov.rm,3)+'</td><td>'+f(ov.cc,3)+'</td></tr>';
+ el.tb.innerHTML=rows;el.nun.textContent=Math.round(NM).toLocaleString('pt-BR');
+ const o=T[T.length-1];const L=[['Resolução (Å)',DLOW.toFixed(1)+'–'+P.cut.toFixed(2)+' ('+o.dlo.toFixed(2)+'–'+o.dhi.toFixed(2)+')'],['Reflexões únicas',Math.round(NM).toLocaleString('pt-BR')+' ('+Math.round(o.N*o.compl).toLocaleString('pt-BR')+')'],['Completeza (%)',f(ov.compl*100,1)+' ('+f(o.compl*100,1)+')'],['Multiplicidade',f(ov.mult,1)+' ('+f(o.mult,1)+')'],['⟨I/σ(I)⟩',f(ov.isig,1)+' ('+f(o.isig,1)+')'],['R<sub>merge</sub>',f(ov.rm,3)+' ('+f(o.rm,3)+')'],['R<sub>pim</sub>',f(ov.rp,3)+' ('+f(o.rp,3)+')'],['CC<sub>1/2</sub>',f(ov.cc,3)+' ('+f(o.cc,3)+')']];
+ el.t1.innerHTML=L.map(x=>'<div style="display:flex;justify-content:space-between;gap:12px;border-bottom:0.5px solid var(--border);padding:4px 0;"><span style="color:var(--text-secondary);">'+x[0]+'</span><span>'+x[1]+'</span></div>').join('');}
+const el={};['bw','bwo','ex','exo','mu','muo','ed','edo','ct','cto','dmg','nw','bcc','bis','rcc','ris','nun','tb','t1'].forEach(i=>el[i]=document.getElementById(i));
+c1=mk('c1',false,0,1);c2=mk('c2',true,0.1,undefined);
+['bw','ex','mu','ed','ct'].forEach(i=>el[i].oninput=upd);el.dmg.onchange=upd;el.nw.onclick=()=>{seed=Math.floor(Math.random()*1e6);upd();};
+el.bcc.onclick=()=>{if(el.bcc.dataset.v){el.ct.value=(+el.bcc.dataset.v).toFixed(2);upd();}};el.bis.onclick=()=>{if(el.bis.dataset.v){el.ct.value=(+el.bis.dataset.v).toFixed(2);upd();}};
+upd();
+})();
+</script>
+</section><div class="caixa"><h3><i class="ti ti-flask" aria-hidden="true" style="margin-right:6px"></i>Experimente</h3><ul><li>Os botões de corte aplicam os dois critérios mais usados; o critério antigo (⟨I/σ⟩ ≈ 2) tende a cortar os dados antes do critério de CC<sub>1/2</sub> ≈ 0,3 (Karplus & Diederichs, 2012).</li><li>Aumentando a multiplicidade, ⟨I/σ⟩ e CC<sub>1/2</sub> melhoram, enquanto R<sub>merge</sub> sobe ou se mantém; o R<sub>pim</sub>, corrigido pela multiplicidade, tende a refletir melhor a precisão dos dados mesclados.</li><li>Com o dano de radiação ativado, as observações mais tardias ficam mais fracas, sobretudo em alta resolução, e o ganho com mais exposição diminui.</li><li>Se a borda do detector fica antes de onde os dados ainda são bons, a completeza cai nas últimas camadas, o que sugere que o detector poderia estar mais próximo do cristal.</li></ul></div><div class="caixa"><h3><i class="ti ti-info-circle" aria-hidden="true" style="margin-right:6px"></i>Ressalvas do modelo</h3><ul><li>Os valores por camada dependem de como as camadas são definidas (aqui, volumes iguais no espaço recíproco).</li><li>O modelo de ruído é simplificado: contagem de fótons, fundo constante e 3% de erro sistemático.</li></ul></div><nav class="nav"><a href="03-difracao-para-estrutura.html"><i class="ti ti-arrow-left" aria-hidden="true"></i>3. Do padrão de difração ao modelo</a><a href="05-substituicao-molecular.html">5. Substituição molecular<i class="ti ti-arrow-right" aria-hidden="true"></i></a></nav></main><footer>Simulações didáticas de cristalografia de proteínas. Modelos simplificados em 1D e 2D, feitos para construir intuição; não substituem os programas de processamento, faseamento e refinamento.</footer>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Substituição molecular · Cristalografia de proteínas em simulações</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<header class="topo"><div class="in">
+<a class="marca" href="index.html"><i class="ti ti-atom-2" aria-hidden="true" style="font-size:20px"></i>Cristalografia de proteínas em simulações</a>
+<span class="passo">5 de 7</span>
+</div></header>
+<main><div class="parte">Parte 4 · Faseamento</div><h1>5. Substituição molecular</h1><p class="intro">Quando existe uma estrutura homóloga, as fases podem ser estimadas posicionando esse modelo na célula do cristal desconhecido. O problema é dividido em duas etapas: primeiro a orientação, depois a posição.</p><p class="intro">A busca de rotação compara a função de Patterson observada, calculada apenas com |F|² e, portanto, sem fases, com os vetores interatômicos do modelo girado. Como esses vetores não dependem da posição da molécula, o ângulo pode ser buscado isoladamente. Fixado o ângulo, a busca de translação varre a célula e mede a correlação entre as intensidades observadas e as calculadas em cada posição.</p><p class="intro">Nesta versão 2D, uma molécula de cerca de 45 átomos cristaliza no grupo plano p2, com duas cópias relacionadas por um eixo de ordem 2 na célula de 26 Å.</p><section class="sim" aria-label="Simulação"><h2 class="sr-only">Simulação de substituição molecular em 2D no grupo plano p2: função de rotação baseada na Patterson, função de translação por correlação de intensidades, posicionamento do modelo de busca e mapa calculado com as fases do modelo.</h2>
+<style>
+.rw{display:flex;align-items:center;gap:8px;}
+.rw label{font-size:14px;color:var(--text-secondary);min-width:140px;}
+.rw span{font-size:14px;font-weight:500;min-width:48px;}
+.mt{background:var(--surface-1);border-radius:var(--radius);padding:.6rem .9rem;}
+.mt .l{font-size:12px;color:var(--text-secondary);}
+.mt .v{font-size:19px;font-weight:500;}
+.hd{font-size:13px;color:var(--text-secondary);margin:0 0 6px;}
+.cv{width:100%;aspect-ratio:1;display:block;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);}
+</style>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:8px 24px;margin-bottom:10px;">
+  <div class="rw"><label>Identidade do modelo</label><input type="range" id="idn" min="20" max="100" step="5" value="50" style="flex:1;"><span id="idno">50%</span></div>
+  <div class="rw"><label>Resolução usada</label><input type="range" id="res" min="2" max="6" step="0.25" value="3" style="flex:1;"><span id="reso">3.00 Å</span></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:14px;">
+  <button id="nm"><i class="ti ti-refresh" aria-hidden="true" style="margin-right:6px;"></i>Novo modelo de busca</button>
+  <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-secondary);"><input type="checkbox" id="mapc" checked>Mapa com fases do MR</label>
+  <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--text-secondary);"><input type="checkbox" id="sol">Mostrar solução verdadeira</label>
+</div>
+<p class="hd">1. Função de rotação (sobreposição da Patterson do modelo com a observada). Clique num pico para escolher outro ângulo.</p>
+<div style="position:relative;height:190px;margin-bottom:16px;"><canvas id="rot" role="img" aria-label="Função de rotação em função do ângulo">Função de rotação.</canvas></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;">
+  <div><p class="hd">2. Função de translação no ângulo escolhido. Clique para escolher outra posição.</p><canvas id="tr" class="cv" width="320" height="320" role="img" aria-label="Mapa da função de translação na célula" style="cursor:crosshair;"></canvas></div>
+  <div><p class="hd">3. Modelo posicionado na célula (p2) e mapa resultante</p><canvas id="cl" class="cv" width="320" height="320" role="img" aria-label="Modelo de busca posicionado na célula com sua cópia simétrica"></canvas></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:16px;margin:8px 0 0;font-size:12px;color:var(--text-secondary);">
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:3px;background:#2a78d6;"></span>Modelo</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:3px;background:#85B7EB;"></span>Cópia por simetria</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:2px;background:#1baf7a;"></span>Mapa (F<sub>o</sub>, fases do modelo)</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:0;border-top:2px dashed #888780;"></span>Estrutura verdadeira</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px;">
+  <div class="mt"><div class="l">Ângulo escolhido</div><div class="v" id="m0">–</div></div>
+  <div class="mt"><div class="l">Z do pico de rotação</div><div class="v" id="m1">–</div></div>
+  <div class="mt"><div class="l">Z do pico de translação</div><div class="v" id="m2">–</div></div>
+  <div class="mt"><div class="l">Contraste (1º / 2º pico)</div><div class="v" id="m3">–</div></div>
+  <div class="mt"><div class="l">CC(I<sub>o</sub>, I<sub>c</sub>)</div><div class="v" id="m4">–</div></div>
+  <div class="mt"><div class="l">Erro vs verdade</div><div class="v" id="m5">oculto</div></div>
+</div>
+<p id="st" style="font-size:14px;margin:12px 0 0;"></p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+const A=26,TP=2*Math.PI,TH0=37,T0=[0.23,0.31],B=20;
+function rngF(s){return function(){s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gsF(r){return()=>{let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(TP*v);};}
+function genMol(){const r=rngF(4242);let P=[[0,0]],ang=0,fails=0;
+ while(P.length<30){const a=ang+(r()-0.5)*2.0,st=1.5+0.3*r(),q=P[P.length-1],p=[q[0]+st*Math.cos(a),q[1]+st*Math.sin(a)];
+  const ok=Math.hypot(p[0],p[1])<7.2&&P.every((o,i)=>i>=P.length-2||Math.hypot(o[0]-p[0],o[1]-p[1])>2.7);
+  if(ok){P.push(p);ang=a;fails=0;}else if(++fails>300&&P.length>2){P.pop();fails=0;ang+=1;}}
+ const at=P.map((p,i)=>({x:p[0],y:p[1],Z:6,sc:false,par:i>0?i-1:-1}));
+ let cx=0,cy=0;for(const a of at){cx+=a.x;cy+=a.y;}cx/=at.length;cy/=at.length;
+ const n0=at.length;for(let i=1;i<n0-1;i+=2){const a=at[i],dx=a.x-cx,dy=a.y-cy,L=Math.hypot(dx,dy)||1;
+  const s={x:a.x+1.5*dx/L,y:a.y+1.5*dy/L,Z:[8,7,6,8][i%4],sc:true,par:i};if(at.every(o=>o===a||Math.hypot(o.x-s.x,o.y-s.y)>2.1))at.push(s);}
+ const sc=at.filter(a=>a.sc);if(sc.length)sc[Math.floor(sc.length/2)].Z=16;
+ cx=0;cy=0;for(const a of at){cx+=a.x;cy+=a.y;}cx/=at.length;cy/=at.length;at.forEach((a,i)=>{a.x-=cx;a.y-=cy;a.id=i;});return at;}
+const MOL=genMol();
+let seed=11,SM=[];
+function makeSearch(){const id=+E.idn.value/100,r=rngF(seed),g=gsF(r),rms=0.4*Math.exp(1.87*(1-id)),p1=r()*TP,p2=r()*TP,k=TP/12;
+ SM=[];for(const a of MOL){if(a.sc&&r()<(1-id)*0.85)continue;SM.push({...a,x:a.x+0.6*rms*g()+0.8*rms*Math.sin(k*a.y+p1),y:a.y+0.6*rms*g()+0.8*rms*Math.cos(k*a.x+p2)});}}
+const fA=(Z,s2)=>Z*Math.exp(-(B+8)*s2/4);
+const rotP=(a,th)=>{const t=th*Math.PI/180,c=Math.cos(t),s=Math.sin(t);return[a.x*c-a.y*s,a.x*s+a.y*c];};
+let RF=[];
+function molF(atoms,th){return RF.map(R=>{let re=0,im=0;for(const a of atoms){const [x,y]=rotP(a,th),f=fA(a.Z,R.s2),p=TP*(R.h*x+R.k*y)/A;re+=f*Math.cos(p);im+=f*Math.sin(p);}return[re,im];});}
+function buildData(){const dmin=+E.res.value,H=Math.floor(A/dmin),r=rngF(99),g=gsF(r);RF=[];
+ for(let h=-H;h<=H;h++)for(let k=-H;k<=H;k++){if(!h&&!k)continue;const s2=(h*h+k*k)/(A*A);if(s2>1/(dmin*dmin)+1e-9||s2<1/225)continue;RF.push({h,k,s2});}
+ const M=molF(MOL,TH0);RF.forEach((R,n)=>{const al=TP*(R.h*T0[0]+R.k*T0[1]);const F=2*(M[n][0]*Math.cos(al)-M[n][1]*Math.sin(al));R.Fo=Math.abs(F)*(1+0.05*g());R.Io=R.Fo*R.Fo;});
+ const nb=8,smax=Math.max(...RF.map(R=>R.s2)),bs=new Array(nb).fill(0),bn=new Array(nb).fill(0);
+ RF.forEach(R=>{const b=Math.min(nb-1,Math.floor(R.s2/smax*nb));R.bin=b;bs[b]+=R.Io;bn[b]++;});RF.forEach(R=>{R.E2=R.Io/(bs[R.bin]/bn[R.bin]);});
+ buildPatt();}
+const NP=64;let PAT=null;
+function gridSum(coef){const out=new Float64Array(NP*NP),byH={};for(const t of coef)(byH[t.h]||(byH[t.h]=[])).push(t);
+ for(const hs in byH){const h=+hs,C=new Float64Array(NP),S=new Float64Array(NP);for(const t of byH[hs])for(let j=0;j<NP;j++){const p=TP*t.k*j/NP;C[j]+=t.c*Math.cos(p);S[j]+=t.c*Math.sin(p);}
+  for(let i=0;i<NP;i++){const p=TP*h*i/NP,ch=Math.cos(p),sh=Math.sin(p),o=i*NP;for(let j=0;j<NP;j++)out[o+j]+=ch*C[j]-sh*S[j];}}return out;}
+function buildPatt(){PAT=gridSum(RF.map(R=>({h:R.h,k:R.k,c:R.E2-1})));}
+function pInterp(ux,uy){let fx=((ux/A)%1+1)%1*NP,fy=((uy/A)%1+1)%1*NP;const i=Math.floor(fx),j=Math.floor(fy),dx=fx-i,dy=fy-j,g=(a,b)=>PAT[((a%NP+NP)%NP)*NP+((b%NP+NP)%NP)];
+ return g(i,j)*(1-dx)*(1-dy)+g(i+1,j)*dx*(1-dy)+g(i,j+1)*(1-dx)*dy+g(i+1,j+1)*dx*dy;}
+let ROT=[],TRF=null,selTh=0,selT=[0,0],NT=52;
+function rotSearch(){const pairs=[];for(let i=0;i<SM.length;i++)for(let j=0;j<SM.length;j++){if(i===j)continue;const dx=SM[i].x-SM[j].x,dy=SM[i].y-SM[j].y;if(Math.hypot(dx,dy)<=10)pairs.push([dx,dy,SM[i].Z*SM[j].Z]);}
+ const raw=[];for(let th=0;th<360;th+=2){const t=th*Math.PI/180,c=Math.cos(t),s=Math.sin(t);let sc=0;for(const p of pairs)sc+=p[2]*pInterp(p[0]*c-p[1]*s,p[0]*s+p[1]*c);raw.push(sc);}
+ const m=raw.reduce((a,b)=>a+b)/raw.length,sd=Math.sqrt(raw.reduce((a,b)=>a+(b-m)**2,0)/raw.length)||1;ROT=raw.map(v=>(v-m)/sd);}
+function angd(a,b){let d=Math.abs(((a-b)%360+360)%360);return Math.min(d,360-d);}
+function topRot(){let bi=0;ROT.forEach((v,i)=>{if(v>ROT[bi])bi=i;});return bi*2;}
+function transSearch(th){const M=molF(SM,th),n=RF.length;const tab=[];for(let ix=0;ix<NT;ix++)tab.push(ix/NT);
+ let mo=0;for(const R of RF)mo+=R.Io;mo/=n;let so=0;for(const R of RF)so+=(R.Io-mo)**2;so=Math.sqrt(so);
+ const out=new Float64Array(NT*NT);
+ const cxh=RF.map(R=>tab.map(t=>Math.cos(TP*R.h*t))),sxh=RF.map(R=>tab.map(t=>Math.sin(TP*R.h*t))),cyk=RF.map(R=>tab.map(t=>Math.cos(TP*R.k*t))),syk=RF.map(R=>tab.map(t=>Math.sin(TP*R.k*t)));
+ for(let ix=0;ix<NT;ix++)for(let iy=0;iy<NT;iy++){let s1=0,s2=0,sx=0;for(let q=0;q<n;q++){const ca=cxh[q][ix]*cyk[q][iy]-sxh[q][ix]*syk[q][iy],sa=sxh[q][ix]*cyk[q][iy]+cxh[q][ix]*syk[q][iy];const F=2*(M[q][0]*ca-M[q][1]*sa),I=F*F;s1+=I;s2+=I*I;sx+=I*(RF[q].Io-mo);}
+  const mi=s1/n,sdc=Math.sqrt(Math.max(s2-n*mi*mi,1e-12));out[ix*NT+iy]=sx/(sdc*so);}
+ TRF={cc:out,M};}
+function eqT(t){const r=[];for(const s of[1,-1])for(const ox of[0,.5])for(const oy of[0,.5])r.push([((s*t[0]+ox)%1+1)%1,((s*t[1]+oy)%1+1)%1,s]);return r;}
+function fdist(a,b){let dx=Math.abs(a[0]-b[0]),dy=Math.abs(a[1]-b[1]);dx=Math.min(dx,1-dx);dy=Math.min(dy,1-dy);return Math.hypot(dx,dy)*A;}
+function trStats(){const c=TRF.cc;let m=0;for(const v of c)m+=v;m/=c.length;let s=0;for(const v of c)s+=(v-m)**2;s=Math.sqrt(s/c.length)||1;
+ let bi=0;for(let i=0;i<c.length;i++)if(c[i]>c[bi])bi=i;const best=[Math.floor(bi/NT)/NT,(bi%NT)/NT],eq=eqT(best);
+ let b2=-1e9;for(let i=0;i<c.length;i++){const p=[Math.floor(i/NT)/NT,(i%NT)/NT];if(eq.some(e=>fdist(e,p)<2.5))continue;if(c[i]>b2)b2=c[i];}
+ return{m,s,best,z1:(c[bi]-m)/s,z2:(b2-m)/s,ccMax:c[bi]};}
+function rotStats(th){let b2=-1e9;ROT.forEach((v,i)=>{const a=i*2;if(angd(a,th)<12||angd(a,th+180)<12)return;if(v>b2)b2=v;});return{z:ROT[Math.round(((th%360)+360)%360/2)%180],z2:b2};}
+const dk=matchMedia('(prefers-color-scheme: dark)').matches;
+const BL=dk?'#3987e5':'#2a78d6',BL2=dk?'#0C447C':'#85B7EB',GN=dk?'#199e70':'#1baf7a',OR=dk?'#d95926':'#eb6834',GY='#888780',GR=dk?'#2c2c2a':'#e1e0d9',BG=dk?[26,26,25]:[252,252,251],DB=dk?[181,212,244]:[12,68,124],MB=dk?[57,135,229]:[42,120,214];
+const vPlug={id:'vl',afterDraw(c){const x=c.scales.x,ar=c.chartArea,g=c.ctx;const line=(th,col,dash)=>{const px=x.getPixelForValue(Math.round(((th%360)+360)%360/2)%180);g.save();g.strokeStyle=col;g.lineWidth=2;g.setLineDash(dash);g.beginPath();g.moveTo(px,ar.top);g.lineTo(px,ar.bottom);g.stroke();g.restore();};
+ if(E.sol.checked){line(TH0,GY,[4,4]);line(TH0+180,GY,[4,4]);}line(selTh,OR,[]);}};
+let RC;
+function drawTr(){const cv=E.tr,g=cv.getContext('2d'),W=cv.width,c=TRF.cc;let mn=Infinity,mx=-Infinity;for(const v of c){if(v<mn)mn=v;if(v>mx)mx=v;}
+ const off=document.createElement('canvas');off.width=NT;off.height=NT;const og=off.getContext('2d'),im=og.createImageData(NT,NT);
+ for(let ix=0;ix<NT;ix++)for(let iy=0;iy<NT;iy++){const t=Math.pow((c[ix*NT+iy]-mn)/(mx-mn||1),2);const a=t<0.5?BG:MB,b=t<0.5?MB:DB,u=t<0.5?t*2:(t-0.5)*2;const p=(iy*NT+ix)*4;for(let q=0;q<3;q++)im.data[p+q]=Math.round(a[q]+(b[q]-a[q])*u);im.data[p+3]=255;}
+ og.putImageData(im,0,0);g.imageSmoothingEnabled=true;g.clearRect(0,0,W,W);g.drawImage(off,0,0,W,W);
+ if(E.sol.checked){g.strokeStyle=GY;g.lineWidth=1.5;const eqs=angd(selTh,TH0)<angd(selTh,TH0+180)?eqT(T0).filter(e=>e[2]===1):eqT(T0).filter(e=>e[2]===-1);for(const e of eqs){const X=e[0]*W,Y=e[1]*W;g.beginPath();g.moveTo(X-6,Y-6);g.lineTo(X+6,Y+6);g.moveTo(X+6,Y-6);g.lineTo(X-6,Y+6);g.stroke();}}
+ g.strokeStyle=OR;g.lineWidth=2.5;g.beginPath();g.arc(selT[0]*W,selT[1]*W,9,0,TP);g.stroke();
+ g.fillStyle=GY;g.font='11px sans-serif';g.fillText('x →',W-26,W-6);g.fillText('y ↓',4,12);}
+function placed(th,t,sgn){return SM.map(a=>{const [x,y]=rotP(a,th);return{...a,X:sgn*(x/A+t[0]),Y:sgn*(y/A+t[1])};});}
+function drawMol(g,W,at,col,lw,dash){g.strokeStyle=col;g.lineWidth=lw;g.setLineDash(dash);const byId={};for(const a of at)byId[a.id]=a;
+ for(let ox=-1;ox<=1;ox++)for(let oy=-1;oy<=1;oy++){const shift=at.length?[Math.floor(at[0].X),Math.floor(at[0].Y)]:[0,0];
+  for(const a of at){if(a.par<0)continue;const b=byId[a.par];if(!b)continue;const X1=(a.X-shift[0]+ox)*W,Y1=(a.Y-shift[1]+oy)*W,X2=(b.X-shift[0]+ox)*W,Y2=(b.Y-shift[1]+oy)*W;g.beginPath();g.moveTo(X1,Y1);g.lineTo(X2,Y2);g.stroke();}
+  if(!dash.length)for(const a of at)if(a.Z===16){g.fillStyle='#eda100';g.beginPath();g.arc((a.X-shift[0]+ox)*W,(a.Y-shift[1]+oy)*W,4,0,TP);g.fill();}}g.setLineDash([]);}
+function contour(g,rho,L,col,W){const sc=W/NP;g.strokeStyle=col;g.lineWidth=1.2;g.beginPath();const V=(i,j)=>rho[((i%NP+NP)%NP)*NP+((j%NP+NP)%NP)];
+ for(let i=0;i<NP;i++)for(let j=0;j<NP;j++){const v=[V(i,j),V(i+1,j),V(i+1,j+1),V(i,j+1)],P=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]],pts=[];
+  for(let e=0;e<4;e++){const a=v[e],b=v[(e+1)%4];if((a<L)!==(b<L)){const t=(L-a)/(b-a),pa=P[e],pb=P[(e+1)%4];pts.push([(pa[0]+t*(pb[0]-pa[0]))*sc,(pa[1]+t*(pb[1]-pa[1]))*sc]);}}
+  for(let q=0;q+1<pts.length;q+=2){g.moveTo(pts[q][0],pts[q][1]);g.lineTo(pts[q+1][0],pts[q+1][1]);}}g.stroke();}
+function drawCell(){const cv=E.cl,g=cv.getContext('2d'),W=cv.width;g.clearRect(0,0,W,W);
+ if(E.mapc.checked){const M=TRF.M;const coef=RF.map((R,n)=>{const al=TP*(R.h*selT[0]+R.k*selT[1]);const F=2*(M[n][0]*Math.cos(al)-M[n][1]*Math.sin(al));return{h:R.h,k:R.k,c:R.Fo*Math.sign(F)};});
+  const rho=gridSum(coef);let m=0;for(const v of rho)m+=v;m/=rho.length;let s=0;for(const v of rho)s+=(v-m)**2;s=Math.sqrt(s/rho.length)||1;for(let i=0;i<rho.length;i++)rho[i]=(rho[i]-m)/s;contour(g,rho,1.2,GN,W);}
+ if(E.sol.checked){const tr=MOL.map(a=>{const [x,y]=rotP(a,TH0);return{...a,X:x/A+T0[0],Y:y/A+T0[1]};}),tm=tr.map(a=>({...a,X:-a.X,Y:-a.Y}));drawMol(g,W,tr,GY,1.5,[4,3]);drawMol(g,W,tm,GY,1.5,[4,3]);}
+ drawMol(g,W,placed(selTh,selT,-1),BL2,3,[]);drawMol(g,W,placed(selTh,selT,1),BL,3,[]);
+ g.strokeStyle=GY;g.lineWidth=1;g.strokeRect(0.5,0.5,W-1,W-1);g.fillStyle=GY;g.font='11px sans-serif';g.fillText('a = b = 26 Å · p2',6,W-6);}
+function metrics(){const rs=rotStats(selTh),ts=trStats();
+ const cur=TRF.cc[Math.round(selT[0]*NT)%NT*NT+Math.round(selT[1]*NT)%NT];const zc=(cur-ts.m)/ts.s;
+ E.m0.textContent=selTh+'°';E.m1.textContent=rs.z.toFixed(1);E.m2.textContent=zc.toFixed(1);E.m3.textContent=(ts.z2>0?(zc/ts.z2).toFixed(2):'–');E.m4.textContent=cur.toFixed(2);
+ const angErr=Math.min(angd(selTh,TH0),angd(selTh,TH0+180)),useMate=angd(selTh,TH0+180)<angd(selTh,TH0);const posErr=Math.min(...eqT(T0).filter(e=>e[2]===(useMate?-1:1)).map(e=>fdist(e,selT)));
+ E.m5.textContent=E.sol.checked?(angErr+'° · '+posErr.toFixed(1)+' Å'):'oculto';
+ const ok=zc>7&&ts.z2>0&&zc/ts.z2>1.25,mid=zc>5.5;E.st.innerHTML='<i class="ti ti-'+(ok?'circle-check':mid?'alert-triangle':'circle-x')+'" aria-hidden="true" style="margin-right:6px;color:var(--text-'+(ok?'success':mid?'warning':'danger')+')"></i>'+(ok?'Solução clara: pico de translação alto e bem destacado.':mid?'Solução possível, mas pouco destacada. Confira o mapa.':'Sem solução clara: os picos não se destacam do ruído.');}
+function snapRot(i){let b=i;for(let d=-4;d<=4;d++){const j=((i+d)%180+180)%180;if(ROT[j]>ROT[b])b=j;}return b*2;}
+function snapT(ix,iy){let bx=ix,by=iy,bv=-1e9;for(let dx=-3;dx<=3;dx++)for(let dy=-3;dy<=3;dy++){const x=((ix+dx)%NT+NT)%NT,y=((iy+dy)%NT+NT)%NT,v=TRF.cc[x*NT+y];if(v>bv){bv=v;bx=x;by=y;}}return[bx/NT,by/NT];}
+function afterRot(){transSearch(selTh);selT=trStats().best;drawTr();drawCell();metrics();RC.update();}
+function full(){E.idno.textContent=E.idn.value+'%';E.reso.textContent=(+E.res.value).toFixed(2)+' Å';makeSearch();rotSearch();
+ RC.data.labels=ROT.map((_,i)=>i*2);RC.data.datasets[0].data=ROT;selTh=topRot();afterRot();}
+const E={};['idn','idno','res','reso','nm','mapc','sol','rot','tr','cl','m0','m1','m2','m3','m4','m5','st'].forEach(i=>E[i]=document.getElementById(i));
+RC=new Chart(E.rot,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:BL,borderWidth:2,pointRadius:0,fill:false}]},plugins:[vPlug],
+ options:{responsive:true,maintainAspectRatio:false,animation:false,onClick:(e,els,c)=>{const i=Math.round(c.scales.x.getValueForPixel(e.x));if(i>=0&&i<180){selTh=snapRot(i);afterRot();}},
+  plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>i[0].label+'°',label:i=>'Z = '+i.raw.toFixed(2)}}},
+  scales:{x:{ticks:{color:'#898781',maxTicksLimit:13,callback:function(v){return this.getLabelForValue(v)+'°';}},grid:{display:false}},y:{title:{display:true,text:'Z',color:'#898781'},ticks:{color:'#898781',maxTicksLimit:5},grid:{color:GR}}}}});
+E.tr.onclick=e=>{const r=E.tr.getBoundingClientRect();const ix=Math.floor((e.clientX-r.left)/r.width*NT),iy=Math.floor((e.clientY-r.top)/r.height*NT);selT=snapT(ix,iy);drawTr();drawCell();metrics();};
+E.idn.oninput=full;E.res.oninput=()=>{buildData();full();};E.nm.onclick=()=>{seed=Math.floor(Math.random()*1e6);full();};
+E.mapc.onchange=drawCell;E.sol.onchange=()=>{drawTr();drawCell();metrics();RC.update();};
+buildData();full();
+})();
+</script>
+</section><div class="caixa"><h3><i class="ti ti-flask" aria-hidden="true" style="margin-right:6px"></i>Experimente</h3><ul><li>Reduzindo a identidade do modelo de 100% para 20%: acima de ~50%, os picos de rotação e translação tendem a se destacar bem; abaixo de ~30%, o pico correto se mistura com os falsos.</li><li>Clicando em um pico secundário da função de rotação, a translação deixa de mostrar uma mancha destacada, o que costuma denunciar uma rotação errada.</li><li>Com modelos de baixa identidade, limitar a busca a 3–4 Å pode melhorar o contraste, já que o modelo diverge justamente nos detalhes finos.</li><li>Com a solução correta, o mapa (F<sub>o</sub> com as fases do modelo) tende a mostrar densidade em regiões em que o modelo de busca não tinha cadeias laterais.</li></ul></div><div class="caixa"><h3><i class="ti ti-info-circle" aria-hidden="true" style="margin-right:6px"></i>Ressalvas do modelo</h3><ul><li>A função de rotação mostra dois picos separados por 180°, e a translação mostra várias manchas equivalentes, por causa da simetria e das origens alternativas do p2; todas correspondem à mesma solução.</li><li>Os valores de Z não equivalem ao TFZ e ao LLG do Phaser, e os limites do indicador de status foram calibrados apenas para esta simulação.</li><li>O desvio do modelo segue a relação de Chothia–Lesk entre identidade e RMSD, com distorções simplificadas.</li></ul></div><nav class="nav"><a href="04-estatisticas-processamento.html"><i class="ti ti-arrow-left" aria-hidden="true"></i>4. Estatísticas de processamento por camada de resolução</a><a href="06-mapa-vs-resolucao.html">6. Aparência do mapa em função da resolução<i class="ti ti-arrow-right" aria-hidden="true"></i></a></nav></main><footer>Simulações didáticas de cristalografia de proteínas. Modelos simplificados em 1D e 2D, feitos para construir intuição; não substituem os programas de processamento, faseamento e refinamento.</footer>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Série de Fourier e derivada espectral · Cristalografia de proteínas em simulações</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<header class="topo"><div class="in">
+<a class="marca" href="index.html"><i class="ti ti-atom-2" aria-hidden="true" style="font-size:20px"></i>Cristalografia de proteínas em simulações</a>
+<span class="passo">1 de 7</span>
+</div></header>
+<main><div class="parte">Parte 1 · Fundamentos</div><h1>1. Série de Fourier e derivada espectral</h1><p class="intro">Qualquer função periódica pode ser escrita como uma soma de senos e cossenos, a série de Fourier. Cada termo tem uma frequência, uma amplitude e uma fase, e o número de termos usados define quanto detalhe a soma consegue reproduzir.</p><p class="intro">Na cristalografia, a densidade eletrônica da célula unitária é exatamente uma soma desse tipo, e os fatores de estrutura F(hkl) são os seus coeficientes. Por isso, entender o que acontece ao truncar a série ajuda a entender, mais adiante, o efeito da resolução sobre os mapas.</p><p class="intro">A derivada também fica simples nesse espaço: derivar a função equivale a multiplicar cada coeficiente por ik. Esse mesmo princípio aparece no cálculo de gradientes de densidade usados em refinamento e em busca de picos.</p><section class="sim" aria-label="Simulação"><h2 class="sr-only">Simulação interativa: aproximação de uma função por série de Fourier com N termos e cálculo da derivada multiplicando cada coeficiente por ik, comparada com a função e a derivada exatas.</h2>
+<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin:0 0 1rem;">
+  <label style="font-size:14px;color:var(--text-secondary);">Função
+    <select id="fn" style="margin-left:6px;">
+      <option value="gauss">Gaussiana periódica</option>
+      <option value="square">Onda quadrada</option>
+      <option value="tri">Onda triangular</option>
+      <option value="saw">Dente de serra</option>
+    </select>
+  </label>
+  <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:220px;">
+    <label style="font-size:14px;color:var(--text-secondary);">Termos N</label>
+    <input type="range" id="n" min="1" max="60" step="1" value="8" style="flex:1;">
+    <span id="nout" style="font-size:14px;font-weight:500;min-width:24px;">8</span>
+  </div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:6px;font-size:12px;color:var(--text-secondary);">
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:0;border-top:2px dashed #888780;"></span>Exata</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:2px;background:#2a78d6;"></span>Fourier (N termos)</span>
+</div>
+<div style="font-size:13px;color:var(--text-secondary);margin:4px 0;">f(x)</div>
+<div style="position:relative;height:220px;"><canvas id="c1" role="img" aria-label="Função original e sua aproximação de Fourier">Função e aproximação.</canvas></div>
+<div style="font-size:13px;color:var(--text-secondary);margin:12px 0 4px;">f′(x) obtida multiplicando cada coeficiente por ik</div>
+<div style="position:relative;height:220px;"><canvas id="c2" role="img" aria-label="Derivada exata e derivada espectral">Derivada exata e espectral.</canvas></div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:1rem;">
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:1rem;"><div style="font-size:13px;color:var(--text-secondary);">Erro máx. em f</div><div id="e1" style="font-size:22px;font-weight:500;">–</div></div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:1rem;"><div style="font-size:13px;color:var(--text-secondary);">Erro máx. em f′</div><div id="e2" style="font-size:22px;font-weight:500;">–</div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+const M=400, P=2*Math.PI, xs=[...Array(M)].map((_,i)=>-Math.PI+P*i/M);
+const F={
+ gauss:{f:x=>Math.exp(-2*x*x),d:x=>-4*x*Math.exp(-2*x*x)},
+ square:{f:x=>x>=0?1:-1,d:x=>0},
+ tri:{f:x=>1-2*Math.abs(x)/Math.PI,d:x=>x>=0?-2/Math.PI:2/Math.PI},
+ saw:{f:x=>x/Math.PI,d:x=>1/Math.PI}
+};
+function coeffs(f,N){const a=[],b=[];for(let k=0;k<=N;k++){let sa=0,sb=0;for(const x of xs){const v=f(x);sa+=v*Math.cos(k*x);sb+=v*Math.sin(k*x);}a.push(sa*2/M);b.push(sb*2/M);}a[0]/=2;return{a,b};}
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const grid=dark?'#2c2c2a':'#e1e0d9', tick='#898781', blu=dark?'#3987e5':'#2a78d6';
+function mk(id){return new Chart(document.getElementById(id),{type:'line',data:{labels:xs.map(x=>x.toFixed(2)),datasets:[{data:[],borderColor:'#888780',borderWidth:2,borderDash:[5,4],pointRadius:0},{data:[],borderColor:blu,borderWidth:2,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{ticks:{color:tick,maxTicksLimit:7,callback:(v,i)=>xs[i].toFixed(1)},grid:{display:false}},y:{ticks:{color:tick},grid:{color:grid}}}}});}
+const c1=mk('c1'),c2=mk('c2');
+function upd(){
+ const N=+document.getElementById('n').value, fn=F[document.getElementById('fn').value];
+ document.getElementById('nout').textContent=N;
+ const {a,b}=coeffs(fn.f,N);
+ const s=[],ds=[];
+ for(const x of xs){let v=a[0],dv=0;for(let k=1;k<=N;k++){v+=a[k]*Math.cos(k*x)+b[k]*Math.sin(k*x);dv+=k*(-a[k]*Math.sin(k*x)+b[k]*Math.cos(k*x));}s.push(v);ds.push(dv);}
+ const ex=xs.map(fn.f), dex=xs.map(fn.d);
+ c1.data.datasets[0].data=ex;c1.data.datasets[1].data=s;c1.update();
+ c2.data.datasets[0].data=dex;c2.data.datasets[1].data=ds;c2.update();
+ const m=(u,w)=>Math.max(...u.map((v,i)=>Math.abs(v-w[i])));
+ document.getElementById('e1').textContent=m(ex,s).toExponential(2);
+ document.getElementById('e2').textContent=m(dex,ds).toExponential(2);
+}
+document.getElementById('n').oninput=upd;document.getElementById('fn').onchange=upd;upd();
+})();
+</script>
+</section><div class="caixa"><h3><i class="ti ti-flask" aria-hidden="true" style="margin-right:6px"></i>Experimente</h3><ul><li>Na gaussiana, que é suave e periódica, o erro tende a cair muito rapidamente com o aumento de N (convergência espectral).</li><li>Na onda quadrada e no dente de serra, surgem oscilações junto às descontinuidades (fenômeno de Gibbs), que não desaparecem com mais termos.</li><li>Na derivada, as oscilações se amplificam, já que a multiplicação por k reforça justamente as frequências mais altas.</li></ul></div><div class="caixa"><h3><i class="ti ti-info-circle" aria-hidden="true" style="margin-right:6px"></i>Ressalvas do modelo</h3><ul><li>Os coeficientes são calculados numericamente a partir de 400 pontos; para N muito alto, pequenas imprecisões numéricas podem aparecer.</li></ul></div><nav class="nav"><a href="index.html"><i class="ti ti-arrow-left" aria-hidden="true"></i>Início</a><a href="02-densidade-1d.html">2. Fatores de estrutura e síntese de densidade<i class="ti ti-arrow-right" aria-hidden="true"></i></a></nav></main><footer>Simulações didáticas de cristalografia de proteínas. Modelos simplificados em 1D e 2D, feitos para construir intuição; não substituem os programas de processamento, faseamento e refinamento.</footer>
+</body>
+</html>

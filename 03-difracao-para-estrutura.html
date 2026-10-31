@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Do padrão de difração ao modelo · Cristalografia de proteínas em simulações</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<header class="topo"><div class="in">
+<a class="marca" href="index.html"><i class="ti ti-atom-2" aria-hidden="true" style="font-size:20px"></i>Cristalografia de proteínas em simulações</a>
+<span class="passo">3 de 7</span>
+</div></header>
+<main><div class="parte">Parte 2 · Visão geral</div><h1>3. Do padrão de difração ao modelo</h1><p class="intro">Esta simulação reúne, em duas dimensões, as etapas que transformam um cristal em um modelo atômico. A molécula se repete na rede cristalina, e é essa repetição que concentra o espalhamento em reflexões discretas (h, k).</p><p class="intro">O detector registra apenas as intensidades I = |F|², das quais se obtêm as amplitudes; as fases se perdem na medida. Para calcular o mapa, cada reflexão dentro do limite de resolução é convertida em uma onda plana com amplitude |F| e fase φ, e a soma dessas ondas é a densidade eletrônica. Os picos acima de 2σ correspondem às posições em que se propõem átomos, de forma análoga à construção do modelo.</p><p class="intro">Em três dimensões, a matemática é a mesma, com um índice a mais (l).</p><section class="sim" aria-label="Simulação"><h2 class="sr-only">Simulação 2D do caminho da cristalografia: cristal no espaço real, padrão de difração com intensidades, combinação de amplitudes e fases em um mapa de densidade eletrônica e construção do modelo a partir dos picos do mapa.</h2>
+<style>
+.pn{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;}
+.pn canvas{width:100%;aspect-ratio:1;display:block;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);}
+.hd{font-size:13px;color:var(--text-secondary);margin:0 0 6px;}
+.rw{display:flex;align-items:center;gap:8px;}
+.rw label{font-size:14px;color:var(--text-secondary);}
+.mt{background:var(--surface-1);border-radius:var(--radius);padding:.7rem 1rem;}
+.mt .l{font-size:12px;color:var(--text-secondary);}
+.mt .v{font-size:20px;font-weight:500;}
+</style>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 20px;margin:0 0 1rem;">
+  <div class="rw"><label style="min-width:118px;">Resolução d<sub>mín</sub></label><input type="range" id="dm" min="1" max="6" step="0.1" value="3" style="flex:1;"><span id="dmo" style="font-size:14px;font-weight:500;min-width:44px;">3.0 Å</span></div>
+  <div class="rw"><label style="min-width:118px;">Fator B (Å²)</label><input type="range" id="bf" min="0" max="40" step="1" value="8" style="flex:1;"><span id="bfo" style="font-size:14px;font-weight:500;min-width:44px;">8</span></div>
+  <div class="rw"><label>Fases</label><select id="ph" style="flex:1;">
+    <option value="true">Corretas (ideal)</option>
+    <option value="mr">De modelo parcial (MR, 5 de 8 átomos)</option>
+    <option value="rand">Aleatórias (sem solução)</option>
+    <option value="unit">Corretas, mas |F| = 1</option>
+  </select></div>
+  <div class="rw" style="flex-wrap:wrap;gap:14px;">
+    <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="pk" checked>Picos (modelo)</label>
+    <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="ov">Estrutura real</label>
+    <button id="rr" aria-label="Sortear fases"><i class="ti ti-refresh" aria-hidden="true"></i></button>
+  </div>
+</div>
+<div class="pn">
+  <div><p class="hd">1. Cristal (espaço real)</p><canvas id="cr" width="300" height="300" role="img" aria-label="Molécula na célula unitária, repetida no cristal"></canvas></div>
+  <div><p class="hd">2. Difração: intensidades I = |F|²</p><canvas id="df" width="300" height="300" role="img" aria-label="Padrão de difração com reflexões h,k e círculo de resolução"></canvas></div>
+  <div><p class="hd">3–4. Mapa de densidade e picos</p><canvas id="mp" width="300" height="300" role="img" aria-label="Mapa de densidade eletrônica com picos identificados"></canvas></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:16px;margin:8px 0 0;font-size:12px;color:var(--text-secondary);">
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#2a78d6;"></span>Densidade &gt; 1σ</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="color:#eb6834;font-weight:500;">×</span>Pico &gt; 2σ (átomo proposto)</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid #888780;"></span>Posição real</span>
+  <span>Círculo no painel 2 = limite de resolução</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:1rem;">
+  <div class="mt"><div class="l">Reflexões usadas</div><div class="v" id="m1">–</div></div>
+  <div class="mt"><div class="l">Correlação do mapa</div><div class="v" id="m2">–</div></div>
+  <div class="mt"><div class="l">Átomos encontrados</div><div class="v" id="m3">–</div></div>
+  <div class="mt"><div class="l">Picos espúrios</div><div class="v" id="m4">–</div></div>
+</div>
+<script>
+(function(){
+const A=12,N=72,HM=12,TP=2*Math.PI;
+const cx=.42,cy=.46,r=1.4/A;
+const atoms=[];
+for(let n=0;n<6;n++){const t=n*Math.PI/3;atoms.push({x:cx+r*Math.cos(t),y:cy+r*Math.sin(t),Z:6,e:'C'});}
+atoms.push({x:cx+2*r,y:cy,Z:8,e:'O'});
+atoms.push({x:cx-r-1.8/A,y:cy,Z:16,e:'S'});
+const partial=[0,1,2,4,5];
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const C={bg:dark?[26,26,25]:[252,252,251],blue:dark?[57,135,229]:[42,120,214],deep:dark?[181,212,244]:[12,68,124],ink:dark?'#f0efec':'#0b0b0b',mut:'#898781',grid:dark?'#2c2c2a':'#e1e0d9',org:dark?'#d95926':'#eb6834'};
+const refl=[];for(let h=-HM;h<=HM;h++)for(let k=-HM;k<=HM;k++){if(!h&&!k)continue;const s2=(h*h+k*k)/(A*A);if(s2<=1+1e-9)refl.push({h,k,s2,d:1/Math.sqrt(s2)});}
+for(const R of refl){R.cs=atoms.map(a=>Math.cos(TP*(R.h*a.x+R.k*a.y)));R.sn=atoms.map(a=>Math.sin(TP*(R.h*a.x+R.k*a.y)));}
+let rph={};function newR(){rph={};for(const R of refl){const key=R.h+','+R.k,neg=(-R.h)+','+(-R.k);if(rph[key]!==undefined)continue;const p=Math.random()*TP;rph[key]=p;rph[neg]=-p;}}newR();
+const ct=[],st=[];for(let h=-HM;h<=HM;h++){const c=new Float64Array(N),s=new Float64Array(N);for(let i=0;i<N;i++){c[i]=Math.cos(TP*h*i/N);s[i]=Math.sin(TP*h*i/N);}ct[h+HM]=c;st[h+HM]=s;}
+function Fc(R,B,idx){let re=0,im=0;for(const j of idx){const f=atoms[j].Z*Math.exp(-B*R.s2/4);re+=f*R.cs[j];im+=f*R.sn[j];}return{amp:Math.hypot(re,im),phi:Math.atan2(im,re)};}
+const ALL=atoms.map((_,i)=>i);
+function density(list){const rho=new Float64Array(N*N);for(const t of list){const cp=Math.cos(t.phi),sp=Math.sin(t.phi),ch=ct[t.h+HM],sh=st[t.h+HM],ck0=ct[t.k+HM],sk0=st[t.k+HM];const ck=new Float64Array(N),sk=new Float64Array(N);for(let j=0;j<N;j++){ck[j]=ck0[j]*cp+sk0[j]*sp;sk[j]=sk0[j]*cp-ck0[j]*sp;}for(let i=0;i<N;i++){const a=t.amp*ch[i],b=t.amp*sh[i],o=i*N;for(let j=0;j<N;j++)rho[o+j]+=a*ck[j]-b*sk[j];}}
+ let m=0;for(const v of rho)m+=v;m/=rho.length;let s=0;for(const v of rho)s+=(v-m)**2;s=Math.sqrt(s/rho.length)||1;for(let i=0;i<rho.length;i++)rho[i]=(rho[i]-m)/s;return rho;}
+function corr(u,v){let s=0;for(let i=0;i<u.length;i++)s+=u[i]*v[i];return s/u.length;}
+let refCache={B:-1,rho:null};
+function drawCrystal(){const cv=document.getElementById('cr'),g=cv.getContext('2d'),W=cv.width;g.clearRect(0,0,W,W);const sc=W*0.6,o=W*0.2;
+ g.strokeStyle=C.grid;g.lineWidth=1;for(let t=-1;t<=2;t++){g.beginPath();g.moveTo(o+t*sc,0);g.lineTo(o+t*sc,W);g.stroke();g.beginPath();g.moveTo(0,o+t*sc);g.lineTo(W,o+t*sc);g.stroke();}
+ g.strokeStyle=C.ink;g.lineWidth=1.5;g.strokeRect(o,o,sc,sc);
+ for(let tx=-1;tx<=1;tx++)for(let ty=-1;ty<=1;ty++){const main=!tx&&!ty;g.globalAlpha=main?1:0.3;
+  g.strokeStyle=C.mut;g.lineWidth=2;for(let i=0;i<atoms.length;i++)for(let j=i+1;j<atoms.length;j++){const d=Math.hypot(atoms[i].x-atoms[j].x,atoms[i].y-atoms[j].y)*A;if(d<1.95){g.beginPath();g.moveTo(o+(atoms[i].x+tx)*sc,o+(atoms[i].y+ty)*sc);g.lineTo(o+(atoms[j].x+tx)*sc,o+(atoms[j].y+ty)*sc);g.stroke();}}
+  for(const a of atoms){const X=o+(a.x+tx)*sc,Y=o+(a.y+ty)*sc,rr=a.Z>10?7:a.Z>7?5.5:5;g.beginPath();g.arc(X,Y,rr,0,TP);g.fillStyle=a.e==='S'?'#eda100':a.e==='O'?'#e34948':(dark?'#c3c2b7':'#5f5e5a');g.fill();if(main){g.fillStyle=C.ink;g.font='11px sans-serif';g.fillText(a.e,X+7,Y-6);}}}
+ g.globalAlpha=1;g.fillStyle=C.mut;g.font='11px sans-serif';g.fillText('a = b = 12 Å',o+4,o+sc+14);}
+function drawDiff(B,dmin){const cv=document.getElementById('df'),g=cv.getContext('2d'),W=cv.width,c=W/2,sc=W/(2*HM+2);g.clearRect(0,0,W,W);
+ let mx=0;const I=refl.map(R=>{const f=Fc(R,B,ALL);const v=f.amp*f.amp;if(v>mx)mx=v;return v;});
+ refl.forEach((R,n)=>{const inn=R.d>=dmin-1e-9;const t=Math.sqrt(I[n]/mx);const rad=0.8+4.2*t;g.beginPath();g.arc(c+R.h*sc,c-R.k*sc,rad,0,TP);g.fillStyle=inn?(dark?'#f0efec':'#0b0b0b'):C.mut;g.globalAlpha=inn?0.25+0.75*t:0.18;g.fill();});
+ g.globalAlpha=1;g.strokeStyle=C.org;g.lineWidth=1.5;g.setLineDash([4,3]);g.beginPath();g.arc(c,c,(A/dmin)*sc,0,TP);g.stroke();g.setLineDash([]);
+ g.fillStyle=C.mut;g.beginPath();g.arc(c,c,4,0,TP);g.fill();g.font='11px sans-serif';g.fillText('h →',W-28,c-6);g.fillText('k ↑',c+6,12);}
+function drawMap(rho,peaks,showP,showT){const cv=document.getElementById('mp'),g=cv.getContext('2d'),W=cv.width;const off=document.createElement('canvas');off.width=N;off.height=N;const og=off.getContext('2d'),im=og.createImageData(N,N);
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const z=rho[i*N+j];let col=C.bg;if(z>1){const t=Math.min((z-1)/3,1);const a=t<0.5?C.blue:C.deep,b=t<0.5?C.bg:C.blue,u=t<0.5?0.35+t*1.3:(t-0.5)*2;col=[0,1,2].map(q=>Math.round(b[q]+(a[q]-b[q])*Math.min(u,1)));}const p=(j*N+i)*4;im.data[p]=col[0];im.data[p+1]=col[1];im.data[p+2]=col[2];im.data[p+3]=255;}
+ og.putImageData(im,0,0);g.imageSmoothingEnabled=true;g.clearRect(0,0,W,W);g.drawImage(off,0,0,W,W);
+ if(showT){g.strokeStyle=dark?'#c3c2b7':'#5f5e5a';g.lineWidth=1.5;for(const a of atoms){g.beginPath();g.arc(a.x*W,a.y*W,6,0,TP);g.stroke();}}
+ if(showP){g.strokeStyle=C.org;g.lineWidth=2;for(const p of peaks){const X=(p.i/N)*W,Y=(p.j/N)*W;g.beginPath();g.moveTo(X-5,Y-5);g.lineTo(X+5,Y+5);g.moveTo(X+5,Y-5);g.lineTo(X-5,Y+5);g.stroke();}}}
+function findPeaks(rho){const P=[];for(let i=0;i<N;i++)for(let j=0;j<N;j++){const v=rho[i*N+j];if(v<2)continue;let ok=true;for(let di=-1;di<=1&&ok;di++)for(let dj=-1;dj<=1;dj++){if(!di&&!dj)continue;const w=rho[((i+di+N)%N)*N+((j+dj+N)%N)];if(w>v){ok=false;break;}}if(ok)P.push({i,j,v});}return P;}
+function pdist(x1,y1,x2,y2){let dx=Math.abs(x1-x2),dy=Math.abs(y1-y2);dx=Math.min(dx,1-dx);dy=Math.min(dy,1-dy);return Math.hypot(dx,dy)*A;}
+function upd(){const dmin=+document.getElementById('dm').value,B=+document.getElementById('bf').value,mode=document.getElementById('ph').value;
+ document.getElementById('dmo').textContent=dmin.toFixed(1)+' Å';document.getElementById('bfo').textContent=B;
+ if(refCache.B!==B){refCache.B=B;refCache.rho=density(refl.map(R=>{const f=Fc(R,B,ALL);return{h:R.h,k:R.k,amp:f.amp,phi:f.phi};}));}
+ const use=refl.filter(R=>R.d>=dmin-1e-9);
+ const list=use.map(R=>{const f=Fc(R,B,ALL);let amp=f.amp,phi=f.phi;if(mode==='rand')phi=rph[R.h+','+R.k];else if(mode==='mr')phi=Fc(R,B,partial).phi;else if(mode==='unit')amp=1;return{h:R.h,k:R.k,amp,phi};});
+ const rho=density(list);const peaks=findPeaks(rho);
+ const found=new Set();let spur=0;for(const p of peaks){let hit=-1;atoms.forEach((a,n)=>{if(pdist(p.i/N,p.j/N,a.x,a.y)<0.7)hit=n;});if(hit>=0)found.add(hit);else spur++;}
+ drawCrystal();drawDiff(B,dmin);drawMap(rho,peaks,document.getElementById('pk').checked,document.getElementById('ov').checked);
+ document.getElementById('m1').textContent=use.length;document.getElementById('m2').textContent=corr(rho,refCache.rho).toFixed(2);
+ document.getElementById('m3').textContent=found.size+' / '+atoms.length;document.getElementById('m4').textContent=spur;}
+['dm','bf'].forEach(id=>document.getElementById(id).oninput=upd);['ph','pk','ov'].forEach(id=>document.getElementById(id).onchange=upd);
+document.getElementById('rr').onclick=()=>{newR();document.getElementById('ph').value='rand';upd();};
+upd();
+})();
+</script>
+</section><div class="caixa"><h3><i class="ti ti-flask" aria-hidden="true" style="margin-right:6px"></i>Experimente</h3><ul><li>Reduzindo d<sub>mín</sub> de 6 para 1 Å: a 6 Å o anel aparece como uma única mancha; por volta de 2,5–3 Å surge o espaço vazio do anel; abaixo de ~1,5 Å os átomos se separam.</li><li>No modo de modelo parcial (MR), as fases vêm de um modelo sem três átomos; ainda assim, a densidade dos átomos ausentes tende a aparecer, mais fraca, porque as amplitudes são as observadas.</li><li>Com fases aleatórias, o mapa produz apenas picos espúrios, o que ilustra o problema das fases em sua forma mais direta.</li><li>No painel de difração, as reflexões mais externas carregam os detalhes finos e são as primeiras a enfraquecer quando o fator B aumenta.</li></ul></div><div class="caixa"><h3><i class="ti ti-info-circle" aria-hidden="true" style="margin-right:6px"></i>Ressalvas do modelo</h3><ul><li>A simulação ignora simetria, ruído experimental e erros de medida; o mapa é calculado com amplitudes exatas.</li></ul></div><nav class="nav"><a href="02-densidade-1d.html"><i class="ti ti-arrow-left" aria-hidden="true"></i>2. Fatores de estrutura e síntese de densidade</a><a href="04-estatisticas-processamento.html">4. Estatísticas de processamento por camada de resolução<i class="ti ti-arrow-right" aria-hidden="true"></i></a></nav></main><footer>Simulações didáticas de cristalografia de proteínas. Modelos simplificados em 1D e 2D, feitos para construir intuição; não substituem os programas de processamento, faseamento e refinamento.</footer>
+</body>
+</html>

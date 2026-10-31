@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aparência do mapa em função da resolução · Cristalografia de proteínas em simulações</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<header class="topo"><div class="in">
+<a class="marca" href="index.html"><i class="ti ti-atom-2" aria-hidden="true" style="font-size:20px"></i>Cristalografia de proteínas em simulações</a>
+<span class="passo">6 de 7</span>
+</div></header>
+<main><div class="parte">Parte 5 · Mapa, modelo e refinamento</div><h1>6. Aparência do mapa em função da resolução</h1><p class="intro">A resolução de um conjunto de dados define o que se pode esperar ver no mapa de densidade eletrônica. Esta simulação mostra um fragmento de quatro resíduos (Ser1–Phe2–Lys3–Cys4) com cinco moléculas de água, desenhado em contorno no nível de σ escolhido, de forma semelhante à malha exibida no Coot.</p><p class="intro">Além da resolução, o mapa depende do fator B e da qualidade das fases. Mapas experimentais costumam ter erros de fase médios da ordem de 40–70°, e esse erro pode degradar o mapa tanto quanto uma resolução pior.</p><section class="sim" aria-label="Simulação"><h2 class="sr-only">Simulação de mapa de densidade eletrônica em contorno para um fragmento peptídico de quatro resíduos com águas, mostrando como os detalhes aparecem conforme a resolução melhora, com controles de resolução, nível de contorno, fator B e erro de fase.</h2>
+<style>
+.rw{display:flex;align-items:center;gap:8px;}
+.rw label{font-size:14px;color:var(--text-secondary);min-width:128px;}
+.rw span{font-size:14px;font-weight:500;min-width:48px;}
+.ft{display:flex;align-items:center;gap:8px;font-size:14px;padding:6px 0;border-bottom:0.5px solid var(--border);}
+.ft:last-child{border-bottom:none;}
+.ft i{font-size:18px;}
+.ft .d{margin-left:auto;font-size:12px;color:var(--text-muted);}
+</style>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 24px;margin:0 0 1rem;">
+  <div class="rw"><label>Resolução d<sub>mín</sub></label><input type="range" id="dm" min="1" max="5" step="0.1" value="3" style="flex:1;"><span id="dmo">3.0 Å</span></div>
+  <div class="rw"><label>Nível de contorno</label><input type="range" id="lv" min="0.5" max="3" step="0.1" value="1" style="flex:1;"><span id="lvo">1.0σ</span></div>
+  <div class="rw"><label>Fator B (Å²)</label><input type="range" id="bf" min="5" max="60" step="1" value="20" style="flex:1;"><span id="bfo">20</span></div>
+  <div class="rw"><label>Erro de fase médio</label><input type="range" id="pe" min="0" max="80" step="5" value="0" style="flex:1;"><span id="peo">0°</span></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;">
+  <div style="flex:1 1 340px;min-width:0;">
+    <canvas id="mp" width="560" height="560" role="img" aria-label="Mapa de densidade eletrônica em contorno sobre um fragmento peptídico" style="width:100%;aspect-ratio:1;display:block;border:0.5px solid var(--border);border-radius:var(--radius);background:var(--surface-1);"></canvas>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;font-size:12px;color:var(--text-secondary);align-items:center;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="sm" checked>Mostrar modelo</label>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#888780;"></span>C</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#6250d6;"></span>N</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#e34948;"></span>O / água</span>
+      <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#eda100;"></span>S</span>
+    </div>
+  </div>
+  <div style="flex:1 1 220px;min-width:0;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div style="background:var(--surface-1);border-radius:var(--radius);padding:.7rem 1rem;"><div style="font-size:12px;color:var(--text-secondary);">Reflexões</div><div id="nr" style="font-size:20px;font-weight:500;">–</div></div>
+      <div style="background:var(--surface-1);border-radius:var(--radius);padding:.7rem 1rem;"><div style="font-size:12px;color:var(--text-secondary);">Correlação com mapa ideal</div><div id="cc" style="font-size:20px;font-weight:500;">–</div></div>
+    </div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">O que se espera ver nesta resolução</div>
+    <div id="fl"></div>
+  </div>
+</div>
+<script>
+(function(){
+const A=20,N=100,TP=2*Math.PI,HX=20;
+const at=[
+[3.0,10.0,'N',1],[4.2,10.8,'C',1,'CA'],[5.5,10.0,'C',1],[5.5,8.8,'O',1],[4.2,12.3,'C',1],[5.4,13.0,'O',1],
+[6.7,10.6,'N',2],[8.0,9.9,'C',2,'CA'],[9.3,10.7,'C',2],[9.3,11.9,'O',2],[8.0,8.4,'C',2],[8.0,7.0,'C',2],[9.2,6.3,'C',2],[6.8,6.3,'C',2],[9.2,4.9,'C',2],[6.8,4.9,'C',2],[8.0,4.2,'C',2],
+[10.5,10.0,'N',3],[11.8,10.7,'C',3,'CA'],[13.1,9.9,'C',3],[13.1,8.7,'O',3],[11.8,12.2,'C',3],[13.0,13.0,'C',3],[13.0,14.5,'C',3],[14.2,15.3,'C',3],[14.2,16.8,'N',3],
+[14.3,10.5,'N',4],[15.6,9.8,'C',4,'CA'],[16.9,10.6,'C',4],[16.9,11.8,'O',4],[15.6,8.3,'C',4],[16.9,7.4,'S',4],
+[5.0,15.6,'W',0],[12.2,5.0,'W',0],[16.2,18.4,'W',0],[2.6,6.6,'W',0],[18.6,13.6,'W',0]
+].map(a=>({x:a[0]/A,y:a[1]/A,e:a[2],r:a[3],ca:a[4]==='CA',Z:{C:6,N:7,O:8,S:16,W:8}[a[2]],w:a[2]==='W'}));
+const resn=['','Ser1','Phe2','Lys3','Cys4'];
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const COL={C:dark?'#c3c2b7':'#5f5e5a',N:'#6250d6',O:'#e34948',W:'#e34948',S:'#eda100'};
+const MESH=dark?'#3987e5':'#2a78d6',INK=dark?'#f0efec':'#0b0b0b';
+const ct=[],st=[];for(let k=-HX;k<=HX;k++){const c=new Float64Array(N),s=new Float64Array(N);for(let j=0;j<N;j++){c[j]=Math.cos(TP*k*j/N);s[j]=Math.sin(TP*k*j/N);}ct.push(c);st.push(s);}
+const rn={};function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(TP*v);}
+for(let h=-HX;h<=HX;h++)for(let k=-HX;k<=HX;k++){const key=h+','+k;if(rn[key]!==undefined)continue;const g=gauss();rn[key]=g;rn[(-h)+','+(-k)]=-g;}
+function refl(dmin,B,peDeg){const H=Math.floor(A/dmin),L=[],pe=peDeg*Math.PI/180*1.25;
+ for(let h=-H;h<=H;h++)for(let k=-H;k<=H;k++){if(!h&&!k)continue;const s2=(h*h+k*k)/(A*A);if(s2>1/(dmin*dmin)+1e-9)continue;
+  let re=0,im=0;for(const a of at){const b=B+8+(a.w?15:0),f=a.Z*(a.w?0.8:1)*Math.exp(-b*s2/4),p=TP*(h*a.x+k*a.y);re+=f*Math.cos(p);im+=f*Math.sin(p);}
+  L.push({h,k,amp:Math.hypot(re,im),phi:Math.atan2(im,re)+pe*rn[h+','+k]});}return L;}
+function density(L){const rho=new Float64Array(N*N),byH={};for(const t of L)(byH[t.h]||(byH[t.h]=[])).push(t);
+ for(const hs in byH){const h=+hs,Rr=new Float64Array(N),Ri=new Float64Array(N);
+  for(const t of byH[hs]){const c=ct[t.k+HX],s=st[t.k+HX],cp=Math.cos(t.phi),sp=Math.sin(t.phi);for(let j=0;j<N;j++){Rr[j]+=t.amp*(c[j]*cp+s[j]*sp);Ri[j]+=t.amp*(s[j]*cp-c[j]*sp);}}
+  const ch=ct[h+HX],sh=st[h+HX];for(let i=0;i<N;i++){const a=ch[i],b=sh[i],o=i*N;for(let j=0;j<N;j++)rho[o+j]+=a*Rr[j]-b*Ri[j];}}
+ let m=0;for(const v of rho)m+=v;m/=rho.length;let s=0;for(const v of rho)s+=(v-m)**2;s=Math.sqrt(s/rho.length)||1;for(let i=0;i<rho.length;i++)rho[i]=(rho[i]-m)/s;return rho;}
+let ideal={B:-1,rho:null};
+function contour(g,rho,L,W){const sc=W/N;g.strokeStyle=MESH;g.lineWidth=1.3;g.beginPath();
+ const V=(i,j)=>rho[((i%N+N)%N)*N+((j%N+N)%N)];
+ for(let i=0;i<N;i++)for(let j=0;j<N;j++){const v=[V(i,j),V(i+1,j),V(i+1,j+1),V(i,j+1)],P=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]],pts=[];
+  for(let e=0;e<4;e++){const a=v[e],b=v[(e+1)%4];if((a<L)!==(b<L)){const t=(L-a)/(b-a),pa=P[e],pb=P[(e+1)%4];pts.push([(pa[0]+t*(pb[0]-pa[0]))*sc,(pa[1]+t*(pb[1]-pa[1]))*sc]);}}
+  for(let q=0;q+1<pts.length;q+=2){g.moveTo(pts[q][0],pts[q][1]);g.lineTo(pts[q+1][0],pts[q+1][1]);}}
+ g.stroke();}
+function drawModel(g,W){g.lineWidth=2.5;g.globalAlpha=0.9;
+ for(let i=0;i<at.length;i++){if(at[i].w)continue;for(let j=i+1;j<at.length;j++){if(at[j].w)continue;const d=Math.hypot(at[i].x-at[j].x,at[i].y-at[j].y)*A;if(d<1.9){const mx=(at[i].x+at[j].x)/2,my=(at[i].y+at[j].y)/2;
+  g.strokeStyle=COL[at[i].e];g.beginPath();g.moveTo(at[i].x*W,at[i].y*W);g.lineTo(mx*W,my*W);g.stroke();
+  g.strokeStyle=COL[at[j].e];g.beginPath();g.moveTo(mx*W,my*W);g.lineTo(at[j].x*W,at[j].y*W);g.stroke();}}}
+ for(const a of at){g.fillStyle=COL[a.e];g.beginPath();g.arc(a.x*W,a.y*W,a.w?5:3.5,0,TP);g.fill();}
+ g.globalAlpha=1;g.fillStyle=INK;g.font='14px sans-serif';for(const a of at)if(a.ca){const lab=resn[a.r];const up=a.r%2===0;g.fillText(lab,a.x*W-14,a.y*W+(up?-14:22));}}
+const feats=[['Envelope proteína / solvente',6],['Cadeia principal contínua',3.6],['Cadeias laterais grandes (Phe, Lys)',3.0],['Águas ordenadas',2.8],['Protuberância das carbonilas',2.5],['Buraco no anel aromático',1.8],['Átomos individuais',1.3]];
+const $=id=>document.getElementById(id);
+function upd(){const dmin=+$('dm').value,lv=+$('lv').value,B=+$('bf').value,pe=+$('pe').value;
+ $('dmo').textContent=dmin.toFixed(1)+' Å';$('lvo').textContent=lv.toFixed(1)+'σ';$('bfo').textContent=B;$('peo').textContent=pe+'°';
+ if(ideal.B!==B){ideal.B=B;ideal.rho=density(refl(1,B,0));}
+ const L=refl(dmin,B,pe),rho=density(L);
+ const cv=$('mp'),g=cv.getContext('2d'),W=cv.width;g.clearRect(0,0,W,W);
+ contour(g,rho,lv,W);if($('sm').checked)drawModel(g,W);
+ g.fillStyle='#898781';g.font='13px sans-serif';g.fillText('célula 20 × 20 Å',10,W-10);
+ $('nr').textContent=L.length;let c=0;for(let i=0;i<rho.length;i++)c+=rho[i]*ideal.rho[i];$('cc').textContent=(c/rho.length).toFixed(2);
+ $('fl').innerHTML=feats.map(f=>{const ok=dmin<=f[1]+1e-9;return '<div class="ft"><i class="ti ti-'+(ok?'check':'x')+'" aria-hidden="true" style="color:var(--text-'+(ok?'success':'muted')+')"></i><span style="color:var(--text-'+(ok?'primary':'muted')+')">'+f[0]+'</span><span class="d">≤ '+f[1].toFixed(1)+' Å</span></div>';}).join('');}
+['dm','lv','bf','pe'].forEach(id=>$(id).oninput=upd);$('sm').onchange=upd;upd();
+})();
+</script>
+</section><div class="caixa"><h3><i class="ti ti-flask" aria-hidden="true" style="margin-right:6px"></i>Experimente</h3><ul><li>Reduzindo d<sub>mín</sub> de 5 para 1 Å: em 4–5 Å, apenas um tubo contínuo; perto de 3 Å, as cadeias laterais da Phe e da Lys; em ~2,5 Å, carbonilas e águas; em ~1,8 Å, o buraco do anel aromático; abaixo de ~1,2 Å, átomos separados.</li><li>Em 0,5σ o mapa mostra ruído e parece mais volumoso; em 2,5–3σ, restam o enxofre e os átomos mais bem ordenados.</li><li>As águas, com fator B mais alto, desaparecem antes dos átomos da proteína quando o B global aumenta.</li><li>Com erro de fase alto, um mapa em 2 Å pode passar a se parecer com um mapa em 3 Å, sem que os dados tenham mudado.</li></ul></div><div class="caixa"><h3><i class="ti ti-info-circle" aria-hidden="true" style="margin-right:6px"></i>Ressalvas do modelo</h3><ul><li>Trata-se de uma projeção 2D, de modo que as distâncias aparecem um pouco mais limpas do que em 3D.</li><li>A lista à direita resume expectativas típicas da literatura e não é calculada a partir do mapa.</li></ul></div><nav class="nav"><a href="05-substituicao-molecular.html"><i class="ti ti-arrow-left" aria-hidden="true"></i>5. Substituição molecular</a><a href="07-refinamento.html">7. Refinamento: mapas de diferença e R<sub>free</sub><i class="ti ti-arrow-right" aria-hidden="true"></i></a></nav></main><footer>Simulações didáticas de cristalografia de proteínas. Modelos simplificados em 1D e 2D, feitos para construir intuição; não substituem os programas de processamento, faseamento e refinamento.</footer>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fatores de estrutura e síntese de densidade · Cristalografia de proteínas em simulações</title>
+<link rel="stylesheet" href="estilo.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<header class="topo"><div class="in">
+<a class="marca" href="index.html"><i class="ti ti-atom-2" aria-hidden="true" style="font-size:20px"></i>Cristalografia de proteínas em simulações</a>
+<span class="passo">2 de 7</span>
+</div></header>
+<main><div class="parte">Parte 1 · Fundamentos</div><h1>2. Fatores de estrutura e síntese de densidade</h1><p class="intro">Em um cristal, cada átomo contribui para cada reflexão h com um fator de espalhamento f = Z·exp(−B·s²/4), e a soma dessas contribuições, com as fases dadas pelas posições atômicas, resulta no fator de estrutura F(h). A densidade eletrônica é recuperada pela síntese de Fourier inversa: ρ(x) = (1/a)·Σ |F(h)|·cos(2πhx − φ(h)).</p><p class="intro">Esta simulação usa uma célula de 10 Å com quatro átomos (C, N, O e S). O número de reflexões incluídas define a resolução (d = a/h<sub>máx</sub>), e o fator B representa a agitação térmica e a desordem dos átomos.</p><section class="sim" aria-label="Simulação"><h2 class="sr-only">Simulação de síntese de Fourier de densidade eletrônica em um cristal unidimensional, com controle de resolução, fator B e tratamento das fases, mostrando a densidade, sua derivada espectral e as amplitudes dos fatores de estrutura.</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px 20px;margin:0 0 1rem;">
+  <div style="display:flex;align-items:center;gap:8px;"><label style="font-size:14px;color:var(--text-secondary);min-width:84px;">Reflexões h<sub>máx</sub></label><input type="range" id="hm" min="1" max="40" step="1" value="6" style="flex:1;"><span id="hmo" style="font-size:14px;font-weight:500;min-width:22px;">6</span></div>
+  <div style="display:flex;align-items:center;gap:8px;"><label style="font-size:14px;color:var(--text-secondary);min-width:84px;">Fator B (Å²)</label><input type="range" id="bf" min="0" max="60" step="1" value="10" style="flex:1;"><span id="bfo" style="font-size:14px;font-weight:500;min-width:22px;">10</span></div>
+  <label style="font-size:14px;color:var(--text-secondary);">Fases
+    <select id="ph" style="margin-left:6px;">
+      <option value="true">Corretas</option>
+      <option value="rand">Aleatórias</option>
+      <option value="zero">Todas zero</option>
+      <option value="unit">Fases corretas, |F| = 1</option>
+    </select>
+  </label>
+  <button id="rr" style="justify-self:start;"><i class="ti ti-refresh" aria-hidden="true" style="margin-right:6px;"></i>Sortear novas fases</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1rem;">
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:.75rem 1rem;"><div style="font-size:13px;color:var(--text-secondary);">Resolução d<sub>mín</sub></div><div id="res" style="font-size:22px;font-weight:500;">–</div></div>
+  <div style="background:var(--surface-1);border-radius:var(--radius);padding:.75rem 1rem;"><div style="font-size:13px;color:var(--text-secondary);">Correlação com o modelo</div><div id="cc" style="font-size:22px;font-weight:500;">–</div></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:6px;font-size:12px;color:var(--text-secondary);">
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:0;border-top:2px dashed #888780;"></span>Modelo (alta resolução)</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:14px;height:2px;background:#2a78d6;"></span>Síntese de Fourier</span>
+  <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#eb6834;"></span>Posição dos átomos</span>
+</div>
+<div style="font-size:13px;color:var(--text-secondary);margin:4px 0;">Densidade eletrônica ρ(x)</div>
+<div style="position:relative;height:220px;"><canvas id="c1" role="img" aria-label="Densidade eletrônica sintetizada comparada com o modelo">Densidade eletrônica.</canvas></div>
+<div style="font-size:13px;color:var(--text-secondary);margin:12px 0 4px;">Gradiente dρ/dx (multiplicando cada F(h) por 2πih/a); zeros = picos atômicos</div>
+<div style="position:relative;height:180px;"><canvas id="c2" role="img" aria-label="Derivada espectral da densidade eletrônica">Derivada da densidade.</canvas></div>
+<div style="font-size:13px;color:var(--text-secondary);margin:12px 0 4px;">Amplitudes |F(h)| usadas na síntese (o que o difratômetro mede)</div>
+<div style="position:relative;height:160px;"><canvas id="c3" role="img" aria-label="Amplitudes dos fatores de estrutura por índice h">Amplitudes dos fatores de estrutura.</canvas></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+const A=10, M=300, xs=[...Array(M)].map((_,i)=>i/M);
+const atoms=[{x:.12,Z:6},{x:.27,Z:7},{x:.50,Z:8},{x:.74,Z:16}];
+const HMAX=40;
+let rph=[...Array(HMAX+1)].map(()=>Math.random()*2*Math.PI);
+function F(h,B){let re=0,im=0;const s=h/A;for(const a of atoms){const f=a.Z*Math.exp(-B*s*s/4);re+=f*Math.cos(2*Math.PI*h*a.x);im+=f*Math.sin(2*Math.PI*h*a.x);}return{amp:Math.hypot(re,im),phi:Math.atan2(im,re)};}
+function synth(hm,B,mode){
+  const F0=atoms.reduce((s,a)=>s+a.Z,0);const amps=[],rho=[],drho=[];
+  const terms=[];for(let h=1;h<=hm;h++){const f=F(h,B);let amp=f.amp,phi=f.phi;
+    if(mode==='rand')phi=rph[h];else if(mode==='zero')phi=0;else if(mode==='unit')amp=1;terms.push({h,amp,phi});amps.push(amp);}
+  for(const x of xs){let r=(mode==='unit'?0:F0),d=0;for(const t of terms){const ang=2*Math.PI*t.h*x-t.phi;r+=2*t.amp*Math.cos(ang);d+=-2*t.amp*(2*Math.PI*t.h/A)*Math.sin(ang);}rho.push(r/A);drho.push(d/A);}
+  return{rho,drho,amps};}
+function corr(u,v){const n=u.length,mu=u.reduce((a,b)=>a+b)/n,mv=v.reduce((a,b)=>a+b)/n;let s=0,su=0,sv=0;for(let i=0;i<n;i++){s+=(u[i]-mu)*(v[i]-mv);su+=(u[i]-mu)**2;sv+=(v[i]-mv)**2;}return s/Math.sqrt(su*sv);}
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+const grid=dark?'#2c2c2a':'#e1e0d9',tick='#898781',org=dark?'#d95926':'#eb6834',blu=dark?'#3987e5':'#2a78d6';
+const lbl=xs.map(x=>(x*A).toFixed(1));
+const xopt={ticks:{color:tick,maxTicksLimit:11,callback:(v,i)=>lbl[i]+' Å'},grid:{display:false}};
+function line(id,withAtoms){const ds=[{data:[],borderColor:'#888780',borderWidth:2,borderDash:[5,4],pointRadius:0},{data:[],borderColor:blu,borderWidth:2,pointRadius:0}];
+ if(withAtoms)ds.push({type:'scatter',data:[],backgroundColor:org,borderColor:dark?'#1a1a19':'#fcfcfb',borderWidth:2,pointRadius:5});
+ return new Chart(document.getElementById(id),{type:'line',data:{labels:lbl,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:xopt,y:{ticks:{color:tick,maxTicksLimit:5},grid:{color:grid}}}}});}
+const c1=line('c1',true),c2=line('c2',false);
+const c3=new Chart(document.getElementById('c3'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:blu,borderRadius:3,maxBarThickness:20}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tick,autoSkip:true},grid:{display:false},title:{display:true,text:'h',color:tick}},y:{ticks:{color:tick,maxTicksLimit:4},grid:{color:grid}}}}});
+function upd(){
+  const hm=+document.getElementById('hm').value,B=+document.getElementById('bf').value,mode=document.getElementById('ph').value;
+  document.getElementById('hmo').textContent=hm;document.getElementById('bfo').textContent=B;
+  const ref=synth(HMAX,B,'true'),s=synth(hm,B,mode);
+  c1.data.datasets[0].data=ref.rho;c1.data.datasets[1].data=s.rho;
+  c1.data.datasets[2].data=atoms.map(a=>({x:lbl[Math.round(a.x*M)],y:0}));
+  c1.update();
+  c2.data.datasets[0].data=ref.drho;c2.data.datasets[1].data=s.drho;c2.update();
+  c3.data.labels=s.amps.map((_,i)=>i+1);c3.data.datasets[0].data=s.amps;c3.update();
+  document.getElementById('res').textContent=(A/hm).toFixed(2)+' Å';
+  document.getElementById('cc').textContent=corr(ref.rho,s.rho).toFixed(2);
+}
+['hm','bf'].forEach(id=>document.getElementById(id).oninput=upd);
+document.getElementById('ph').onchange=upd;
+document.getElementById('rr').onclick=()=>{rph=rph.map(()=>Math.random()*2*Math.PI);document.getElementById('ph').value='rand';upd();};
+upd();
+})();
+</script>
+</section><div class="caixa"><h3><i class="ti ti-flask" aria-hidden="true" style="margin-right:6px"></i>Experimente</h3><ul><li>Com poucas reflexões (d ≈ 3–5 Å), C e N, separados por cerca de 1,5 Å, tendem a aparecer como um único pico; abaixo de ~1,5 Å, os dois se separam.</li><li>Com fator B baixo e poucas reflexões, surgem ondulações negativas ao redor do enxofre, as chamadas ondas de truncamento.</li><li>Com fases aleatórias, as amplitudes continuam idênticas, mas o mapa perde o sentido; com |F| = 1 e fases corretas, os átomos continuam nos lugares certos.</li><li>O gráfico do meio mostra o gradiente dρ/dx calculado no espaço recíproco: os zeros com inclinação negativa coincidem com os picos atômicos.</li></ul></div><div class="caixa"><h3><i class="ti ti-info-circle" aria-hidden="true" style="margin-right:6px"></i>Ressalvas do modelo</h3><ul><li>O fator de espalhamento atômico foi aproximado por uma única gaussiana; os fatores reais têm forma um pouco diferente.</li></ul></div><nav class="nav"><a href="01-fourier.html"><i class="ti ti-arrow-left" aria-hidden="true"></i>1. Série de Fourier e derivada espectral</a><a href="03-difracao-para-estrutura.html">3. Do padrão de difração ao modelo<i class="ti ti-arrow-right" aria-hidden="true"></i></a></nav></main><footer>Simulações didáticas de cristalografia de proteínas. Modelos simplificados em 1D e 2D, feitos para construir intuição; não substituem os programas de processamento, faseamento e refinamento.</footer>
+</body>
+</html>
